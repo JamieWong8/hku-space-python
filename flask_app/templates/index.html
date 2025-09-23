@@ -1,0 +1,1965 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Deal Scout - AI-Powered Investment Analysis [3-TIER ACTIVE]</title>
+    <meta name="description" content="Deal Scout is an AI-powered investment analysis platform that helps investment firms make data-driven decisions when evaluating startup opportunities.">
+    <meta name="keywords" content="investment analysis, startup evaluation, AI, machine learning, venture capital, deal sourcing">
+    <meta name="author" content="Deal Scout">
+    
+    <!-- Cache busting for fresh content -->
+    <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate">
+    <meta http-equiv="Pragma" content="no-cache">
+    <meta http-equiv="Expires" content="0">
+    <meta name="cache-timestamp" content="2025-09-22-tier-system-v2">
+    {% if template_version %}
+    <meta name="template-version" content="{{ template_version }}">
+    {% endif %}
+    
+    <!-- Bootstrap CSS -->
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+    <!-- Font Awesome -->
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" rel="stylesheet">
+    <!-- Chart.js with all chart types support -->
+    <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.js"></script>
+    
+    <style>
+        /* Deal Scout Branding */
+        :root {
+            /* Core brand palette tuned to logo */
+            --primary-color: #1f2a44;   /* Deep navy */
+            --secondary-color: #2f80ed; /* Brand blue */
+            --accent-color: #10b981;    /* Teal accent */
+            --gradient-start: #1f2a44;
+            --gradient-end: #2f80ed;
+
+            --success-color: #27ae60;  /* Invest */
+            --warning-color: #f6c000;  /* Monitor */
+            --danger-color: #e74c3c;   /* Avoid */
+            --light-bg: #f8f9fa;
+        }
+        
+        body {
+            background: linear-gradient(135deg, var(--gradient-start) 0%, var(--gradient-end) 100%);
+            min-height: 100vh;
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+        }
+        
+        .main-container {
+            background: white;
+            border-radius: 20px;
+            box-shadow: 0 20px 40px rgba(0,0,0,0.1);
+            margin: 20px auto;
+            max-width: 1400px;
+        }
+        
+        .header-section {
+            background: linear-gradient(135deg, var(--gradient-start) 0%, var(--gradient-end) 100%);
+            color: white;
+            padding: 0.85rem 0.75rem;
+            border-radius: 20px 20px 0 0;
+            text-align: center;
+        }
+
+        /* Brand logo: more visible, responsive, flows with header */
+        .brand-logo {
+            height: 160px;
+            max-width: 100%;
+            object-fit: contain;
+            filter: drop-shadow(0 2px 6px rgba(0,0,0,0.15));
+        }
+        
+        .feature-icon {
+            font-size: 2rem;
+            margin-bottom: 1rem;
+            color: var(--secondary-color);
+        }
+        
+        .card {
+            border: none;
+            border-radius: 15px;
+            box-shadow: 0 5px 15px rgba(0,0,0,0.08);
+            transition: transform 0.3s ease, box-shadow 0.3s ease;
+        }
+        
+        .card:hover {
+            transform: translateY(-5px);
+            box-shadow: 0 10px 25px rgba(0,0,0,0.15);
+        }
+        
+        .form-control, .form-select {
+            border-radius: 10px;
+            border: 2px solid #e9ecef;
+            padding: 12px 15px;
+            transition: border-color 0.3s ease;
+        }
+        
+        .form-control:focus, .form-select:focus {
+            border-color: var(--secondary-color);
+            box-shadow: 0 0 0 0.2rem rgba(52, 152, 219, 0.25);
+        }
+        
+        .btn-primary {
+            background: linear-gradient(135deg, var(--secondary-color) 0%, #1e6fd4 100%);
+            border: none;
+            border-radius: 10px;
+            padding: 12px 30px;
+            font-weight: 600;
+            transition: all 0.3s ease;
+        }
+        
+        .btn-primary:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 5px 15px rgba(52, 152, 219, 0.4);
+        }
+        
+        .results-container {
+            display: none;
+            margin-top: 2rem;
+        }
+        
+        .score-display {
+            font-size: 3rem;
+            font-weight: bold;
+            text-align: center;
+            padding: 2rem;
+            border-radius: 15px;
+            margin-bottom: 1rem;
+        }
+        
+        .score-excellent { background: linear-gradient(135deg, #27ae60, #2ecc71); color: white; }
+        .score-good { background: linear-gradient(135deg, #f39c12, #e67e22); color: white; }
+        .score-moderate { background: linear-gradient(135deg, #e67e22, #d35400); color: white; }
+        .score-poor { background: linear-gradient(135deg, #e74c3c, #c0392b); color: white; }
+        
+        .metric-card {
+            text-align: center;
+            padding: 1.5rem;
+            border-radius: 15px;
+            background: var(--light-bg);
+            margin-bottom: 1rem;
+        }
+        
+        .metric-value {
+            font-size: 2rem;
+            font-weight: bold;
+            color: var(--primary-color);
+        }
+        
+        .metric-label {
+            color: #6c757d;
+            font-size: 0.9rem;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+        }
+        
+        .insight-item {
+            background: #f8f9fa;
+            border-left: 4px solid var(--secondary-color);
+            padding: 1rem 1.5rem;
+            margin-bottom: 1rem;
+            border-radius: 0 10px 10px 0;
+        }
+        
+        .loading-spinner {
+            display: none;
+            text-align: center;
+            padding: 2rem;
+        }
+        
+        
+        .visualization-container {
+            text-align: center;
+            margin-top: 2rem;
+        }
+        
+        .nav-pills .nav-link {
+            color: var(--primary-color);
+            background: rgba(31, 42, 68, 0.06);
+            border: 1px solid rgba(31, 42, 68, 0.12);
+        }
+        .nav-pills .nav-link:hover {
+            color: var(--primary-color);
+            background: rgba(31, 42, 68, 0.12);
+            border-color: rgba(31, 42, 68, 0.2);
+        }
+        .nav-pills .nav-link:focus-visible {
+            outline: 2px solid var(--secondary-color);
+            outline-offset: 2px;
+        }
+        .nav-pills .nav-link.active {
+            color: #ffffff;
+            background-color: var(--secondary-color);
+            border-color: var(--secondary-color);
+            box-shadow: 0 6px 18px rgba(47, 128, 237, 0.35);
+        }
+        
+        .company-card {
+            cursor: pointer;
+            transition: all 0.3s ease;
+            border: 1px solid #dee2e6;
+            margin-bottom: 1rem;
+        }
+        
+        .company-card:hover {
+            border-color: var(--secondary-color);
+            transform: translateY(-2px);
+            box-shadow: 0 4px 8px rgba(0,0,0,0.1);
+        }
+        
+        /* Three-tier visual accents */
+        .company-tier-invest { border-left: 4px solid var(--success-color); }
+        .company-tier-monitor { border-left: 4px solid var(--warning-color); }
+        .company-tier-avoid { border-left: 4px solid var(--danger-color); }
+        
+        .company-metrics {
+            font-size: 0.9rem;
+            color: #6c757d;
+        }
+        
+        .company-funding {
+            font-weight: bold;
+            color: var(--primary-color);
+        }
+        
+        .pagination .page-link {
+            color: var(--primary-color);
+        }
+        
+        .pagination .page-item.active .page-link {
+            background-color: var(--secondary-color);
+            border-color: var(--secondary-color);
+        }
+        
+        @media (max-width: 768px) {
+            .main-container {
+                margin: 10px;
+                border-radius: 15px;
+            }
+            
+            .header-section {
+                padding: 1.5rem;
+                border-radius: 15px 15px 0 0;
+            }
+
+            /* Keep the logo proportionally large but not overwhelming on small screens */
+            .brand-logo {
+                height: 120px;
+            }
+            
+            .score-display {
+                font-size: 2rem;
+                padding: 1.5rem;
+            }
+        }
+        
+        .form-range {
+            height: 6px;
+        }
+        
+        .range-labels {
+            display: flex;
+            justify-content: space-between;
+            font-size: 0.8rem;
+            color: #6c757d;
+            margin-top: 0.5rem;
+        }
+        
+        /* Enhanced Analysis Modal Styles */
+        #analysisModal .modal-dialog {
+            max-width: 95vw;
+        }
+        
+        #analysisModal .tab-content {
+            min-height: 500px;
+        }
+        
+        #analysisModal .card {
+            box-shadow: 0 0.125rem 0.25rem rgba(0, 0, 0, 0.075);
+            border: 1px solid rgba(0, 0, 0, 0.125);
+            margin-bottom: 1rem;
+        }
+        
+        #analysisModal .card-header {
+            background-color: #f8f9fa;
+            border-bottom: 1px solid rgba(0, 0, 0, 0.125);
+            font-weight: 600;
+        }
+        
+        #analysisModal canvas {
+            max-height: 300px;
+        }
+        
+        #analysisModal .nav-tabs .nav-link {
+            color: #495057;
+            border: 1px solid transparent;
+        }
+        
+        #analysisModal .nav-tabs .nav-link.active {
+            color: #007bff;
+            background-color: #fff;
+            border-color: #dee2e6 #dee2e6 #fff;
+            border-bottom-color: transparent;
+        }
+        
+        #analysisModal .badge {
+            font-size: 0.75em;
+        }
+        
+        #riskFactorsList .badge {
+            margin-right: 0.5rem;
+        }
+        
+        #analysisModal .summary-cards .card {
+            transition: transform 0.2s ease-in-out;
+        }
+        
+        #analysisModal .summary-cards .card:hover {
+            transform: translateY(-2px);
+        }
+        
+        /* Investment Commentary Styles */
+        .investment-commentary .card {
+            transition: all 0.3s ease;
+        }
+        
+        .investment-commentary .card:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 4px 12px rgba(0,0,0,0.15);
+        }
+        
+        .commentary-icon {
+            min-width: 40px;
+            text-align: center;
+        }
+        
+        .commentary-text {
+            line-height: 1.6;
+        }
+        
+        .investment-commentary .border-success {
+            border-left: 4px solid #28a745 !important;
+        }
+        
+        .investment-commentary .border-danger {
+            border-left: 4px solid #dc3545 !important;
+        }
+        
+        .investment-commentary .border-warning {
+            border-left: 4px solid #ffc107 !important;
+        }
+        
+        .investment-commentary .border-primary {
+            border-left: 4px solid #007bff !important;
+        }
+        
+        /* About Page Methodology Styles */
+        .methodology-section {
+            background: linear-gradient(135deg, #f8f9fa 0%, #e9ecef 100%);
+            border-radius: 15px;
+            padding: 2rem;
+            margin: 1.5rem 0;
+        }
+        
+        .score-component {
+            text-align: center;
+            padding: 1rem;
+            margin-bottom: 1rem;
+        }
+        
+        .score-weight {
+            font-size: 1.5rem;
+            font-weight: bold;
+            color: var(--primary-color);
+            margin-bottom: 0.5rem;
+        }
+        
+        .score-label {
+            margin-bottom: 0.5rem;
+            color: #333;
+        }
+        
+        .score-component small {
+            color: #6c757d;
+            line-height: 1.3;
+        }
+        
+        .score-tiers {
+            margin-top: 2rem;
+            padding-top: 1.5rem;
+            border-top: 2px solid #dee2e6;
+        }
+        
+        .tier-card {
+            text-align: center;
+            padding: 1rem;
+            border-radius: 10px;
+            margin-bottom: 1rem;
+            transition: transform 0.2s ease;
+        }
+        
+        .tier-card:hover {
+            transform: translateY(-2px);
+        }
+        
+        .tier-invest { background: linear-gradient(135deg, #27ae60, #2ecc71); color: white; }
+        .tier-monitor { background: linear-gradient(135deg, #f6c000, #ffd54f); color: #1f2a44; }
+        .tier-avoid { background: linear-gradient(135deg, #e74c3c, #c0392b); color: white; }
+        
+        .tier-score {
+            font-size: 1.2rem;
+            font-weight: bold;
+            margin-bottom: 0.3rem;
+        }
+        
+        .tier-name {
+            font-weight: 600;
+            margin-bottom: 0.3rem;
+        }
+        
+        .tier-desc {
+            font-size: 0.85rem;
+            opacity: 0.9;
+        }
+        
+        /* Enhanced metric cards for about page */
+        .metric-card {
+            transition: all 0.3s ease;
+        }
+        
+        .metric-card:hover {
+            transform: translateY(-3px);
+            box-shadow: 0 5px 15px rgba(0,0,0,0.1);
+        }
+
+        /* Ensure consistent heights for tier cards on Home section */
+        .score-tiers .tier-card {
+            min-height: 140px;
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+        }
+
+        /* Soften and align tier card styles with brand */
+        .tier-invest { background: linear-gradient(135deg, var(--accent-color), #34d399); }
+        .tier-monitor { background: linear-gradient(135deg, #f6c000, #ffd54f); }
+        .tier-avoid { background: linear-gradient(135deg, #e74c3c, #c0392b); }
+
+        /* Company cards: subtle brand border hover */
+        .company-card:hover {
+            box-shadow: 0 8px 20px rgba(31,42,68,0.18);
+        }
+
+        /* Mission Statement panel on Home */
+        .mission-statement {
+            background: rgba(47, 128, 237, 0.08);
+            border: 1px solid rgba(47, 128, 237, 0.2);
+            color: var(--primary-color);
+            border-radius: 12px;
+        }
+        .mission-statement h5 {
+            color: var(--secondary-color);
+            font-weight: 700;
+        }
+        .mission-statement p {
+            margin: 0;
+            font-size: 1.05rem;
+            line-height: 1.6;
+        }
+    </style>
+</head>
+<body>
+    <div class="container-fluid">
+        <div class="main-container">
+            <!-- Header Section -->
+            <div class="header-section">
+                <div style="text-align: center; margin-bottom: 0.25rem;">
+                    <img class="brand-logo" src="{{ url_for('static', filename='images/deal-scout-logo.png') }}" 
+                         alt="Deal Scout">
+                </div>
+                <div class="row mt-2">
+                    <div class="col-md-3 col-6">
+                        <div class="feature-icon"><i class="fas fa-brain"></i></div>
+                        <h6>Machine Learning</h6>
+                        <small>99.4% Accuracy</small>
+                    </div>
+                    <div class="col-md-3 col-6">
+                        <div class="feature-icon"><i class="fas fa-chart-line"></i></div>
+                        <h6>Real-time Analysis</h6>
+                        <small>Instant Results</small>
+                    </div>
+                    <div class="col-md-3 col-6">
+                        <div class="feature-icon"><i class="fas fa-shield-alt"></i></div>
+                        <h6>Risk Assessment</h6>
+                        <small>Comprehensive Scoring</small>
+                    </div>
+                    <div class="col-md-3 col-6">
+                        <div class="feature-icon"><i class="fas fa-lightbulb"></i></div>
+                        <h6>Smart Insights</h6>
+                        <small>Actionable Recommendations</small>
+                    </div>
+                </div>
+            </div>
+            
+            <!-- Main Content -->
+            <div class="p-4">
+                <!-- Navigation Tabs - UPDATED VERSION NO EVALUATE DEAL -->
+                <ul class="nav nav-pills justify-content-center mb-4" id="mainTabs" role="tablist">
+                    <li class="nav-item" role="presentation">
+                        <button class="nav-link active" id="home-tab" data-bs-toggle="pill" data-bs-target="#home" type="button" role="tab">
+                            <i class="fas fa-home"></i> Home
+                        </button>
+                    </li>
+                    <li class="nav-item" role="presentation">
+                        <button class="nav-link" id="companies-tab" data-bs-toggle="pill" data-bs-target="#companies-real" type="button" role="tab">
+                            <i class="fas fa-chart-line"></i> Evaluate Companies
+                        </button>
+                    </li>
+                </ul>
+                
+                <div class="tab-content" id="mainTabContent">
+                    
+                    <!-- Home Tab (previously About) -->
+                    <div class="tab-pane fade show active" id="home" role="tabpanel">
+                        <div class="row">
+                            <div class="col-lg-10 mx-auto">
+                                <div class="card">
+                                    <div class="card-body">
+                                        <h3 class="text-center mb-3"><i class="fas fa-home"></i> Deal Scout</h3>
+                                        <p class="text-center text-muted mb-4">AI-powered, data-driven startup evaluation—fast, clear, and consistent.</p>
+
+                                        <div class="row g-3 mb-3">
+                                            <div class="col-md-4">
+                                                <div class="metric-card">
+                                                    <div class="metric-value"><i class="fas fa-robot"></i></div>
+                                                    <div class="metric-label">ML-driven scoring (0–100)</div>
+                                                </div>
+                                            </div>
+                                            <div class="col-md-4">
+                                                <div class="metric-card">
+                                                    <div class="metric-value"><i class="fas fa-chart-line"></i></div>
+                                                    <div class="metric-label">Clear tiers: Invest • Monitor • Avoid</div>
+                                                </div>
+                                            </div>
+                                            <div class="col-md-4">
+                                                <div class="metric-card">
+                                                    <div class="metric-value"><i class="fas fa-comments"></i></div>
+                                                    <div class="metric-label">Actionable insights & risks</div>
+                                                </div>
+                                            </div>
+                                        </div>
+
+                                        <div class="methodology-section" aria-label="Investment tiers overview">
+                                            <div class="row text-center align-items-stretch">
+                                                <!-- Invest -->
+                                                <div class="col-12 col-md-4 mb-3">
+                                                    <div class="tier-card tier-invest py-3 h-100">
+                                                        <div class="tier-score"><i class="fa-solid fa-circle-check me-1" aria-hidden="true"></i>Invest</div>
+                                                        <div class="tier-name">High‑conviction opportunity</div>
+                                                        <div class="tier-desc">Score ≥ 60</div>
+                                                    </div>
+                                                </div>
+                                                <!-- Monitor -->
+                                                <div class="col-12 col-md-4 mb-3">
+                                                    <div class="tier-card tier-monitor py-3 h-100">
+                                                        <div class="tier-score"><i class="fa-solid fa-triangle-exclamation me-1" aria-hidden="true"></i>Monitor</div>
+                                                        <div class="tier-name">Promising—watch closely</div>
+                                                        <div class="tier-desc">Score 45–59</div>
+                                                    </div>
+                                                </div>
+                                                <!-- Avoid -->
+                                                <div class="col-12 col-md-4 mb-3">
+                                                    <div class="tier-card tier-avoid py-3 h-100">
+                                                        <div class="tier-score"><i class="fa-solid fa-circle-xmark me-1" aria-hidden="true"></i>Avoid</div>
+                                                        <div class="tier-name">Risk outweighs return</div>
+                                                        <div class="tier-desc">Score &lt; 45</div>
+                                                    </div>
+                                                </div>
+                                            </div>
+                                        </div>
+
+                                        <div class="mission-statement mt-3 p-3 p-md-4 text-center">
+                                            <h5 class="mb-2"><i class="fas fa-bullseye me-2"></i>Our Mission</h5>
+                                            <p>
+                                                Deal Scout empowers investors to make faster, more confident, and data‑driven decisions
+                                                by unifying real‑world datasets with transparent ML scoring and a clear tiered framework.
+                                                We turn complexity into clarity—so you can focus on the right opportunities.
+                                            </p>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <!-- Evaluate Companies Tab -->
+                    <div class="tab-pane fade" id="companies-real" role="tabpanel">
+                        <div class="row mb-4">
+                            <div class="col-12">
+                                <div class="card">
+                                    <div class="card-body">
+                                        <div class="row g-3">
+                                            <div class="col-md-4">
+                                                <label class="form-label">Industry Group</label>
+                                                <select class="form-select" id="industryFilter">
+                                                    <option value="">All Industry Groups</option>
+                                                </select>
+                                            </div>
+                                            <div class="col-md-4">
+                                                <label class="form-label">Region</label>
+                                                <select class="form-select" id="locationFilter">
+                                                    <option value="">All Regions</option>
+                                                </select>
+                                            </div>
+                                            <div class="col-md-3">
+                                                <label class="form-label">Investment Tier</label>
+                                                <select class="form-select" id="tierFilter">
+                                                    <option value="">All Tiers</option>
+                                                    <option value="invest">🟢 Invest</option>
+                                                    <option value="monitor">🟡 Monitor</option>
+                                                    <option value="avoid">🔴 Avoid</option>
+                                                </select>
+                                            </div>
+                                            <div class="col-md-1 d-flex align-items-end">
+                                                <button id="searchBtn" class="btn btn-primary w-100" onclick="searchCompanies()">
+                                                    <i class="fas fa-search"></i>
+                                                </button>
+                                            </div>
+                                        </div>
+                                        
+                                        <!-- Comparison Panel -->
+                                        <div class="row mt-3" id="comparisonPanel" style="display: none;">
+                                            <div class="col-12">
+                                                <div class="alert alert-info">
+                                                    <div class="d-flex justify-content-between align-items-center">
+                                                        <div>
+                                                            <i class="fas fa-balance-scale"></i>
+                                                            <strong>Compare Companies:</strong>
+                                                            <span id="comparisonCount">0</span> selected
+                                                        </div>
+                                                        <div>
+                                                            <button class="btn btn-sm btn-success me-2" onclick="showComparison()" id="compareBtn" disabled>
+                                                                <i class="fas fa-chart-bar"></i> Compare
+                                                            </button>
+                                                            <button class="btn btn-sm btn-secondary" onclick="clearComparison()">
+                                                                <i class="fas fa-times"></i> Clear
+                                                            </button>
+                                                        </div>
+                                                    </div>
+                                                </div>
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                        
+                        <!-- Dataset Info -->
+                        
+                        <!-- Companies List -->
+                        <div class="row" id="companiesList">
+                            <div class="col-12 text-center">
+                                <div class="spinner-border" role="status">
+                                    <span class="visually-hidden">Loading companies...</span>
+                                </div>
+                                <p class="mt-2">Loading companies...</p>
+                            </div>
+                        </div>
+                        
+                        <!-- Pagination -->
+                        <div class="row mt-4">
+                            <div class="col-12 d-flex justify-content-center">
+                                <nav>
+                                    <ul class="pagination" id="companyPagination">
+                                        <!-- Pagination will be generated here -->
+                                    </ul>
+                                </nav>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+    
+    <!-- Bootstrap JS -->
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+    
+    <!-- Custom JavaScript -->
+    <script>
+        // Data source info loading (keeping only relevant functions)
+        
+        // Company browsing functionality
+    let currentPage = 1;
+    let currentFilters = {};
+    let currentFetchController = null; // to cancel slow searches
+    // Track availability of consolidated filters from backend
+    let hasGroupedIndustry = false;
+    let hasRegions = false;
+        
+        function loadCompanies(page = 1, filters = {}) {
+            const params = new URLSearchParams({
+                page: page,
+                per_page: 12,
+                ...filters
+            });
+            
+            // Show loading state in the companies list
+            const listEl = document.getElementById('companiesList');
+            if (listEl) {
+                listEl.innerHTML = `
+                    <div class="col-12 text-center">
+                        <div class="spinner-border" role="status">
+                            <span class="visually-hidden">Loading companies...</span>
+                        </div>
+                        <p class="mt-2">Loading companies...</p>
+                    </div>`;
+            }
+
+            // Cancel any in-flight request to speed up perceived performance
+            if (currentFetchController) {
+                try { currentFetchController.abort(); } catch (e) {}
+            }
+            currentFetchController = new AbortController();
+            const signal = currentFetchController.signal;
+
+            // Show button loading state if available
+            const searchBtn = document.getElementById('searchBtn');
+            if (searchBtn) { searchBtn.disabled = true; searchBtn.innerHTML = '<span class="spinner-border spinner-border-sm" role="status" aria-hidden="true"></span>'; }
+
+            fetch(`/api/companies?${params}`, { signal })
+                .then(response => response.json())
+                .then(data => {
+                    displayCompanies(data);
+                    updatePagination(data.pagination);
+                    updateFilters(data.filters);
+                    currentPage = page;
+                    currentFilters = filters;
+                })
+                .catch(error => {
+                    if (error && error.name === 'AbortError') {
+                        // request was canceled due to a new search; ignore error UI
+                        return;
+                    }
+                    console.error('Error loading companies:', error);
+                    document.getElementById('companiesList').innerHTML = 
+                        '<div class="col-12 text-center"><p class="text-danger">Error loading companies. Please try again.</p></div>';
+                })
+                .finally(() => {
+                    if (searchBtn) { searchBtn.disabled = false; searchBtn.innerHTML = '<i class="fas fa-search"></i>'; }
+                });
+        }
+        
+        function displayCompanies(data) {
+            const container = document.getElementById('companiesList');
+
+            // Prefer server-provided tier/recommendation; fallback to client calc only if absent
+            function mapServerTierToClient(tierStr) {
+                if (!tierStr) return null;
+                const t = tierStr.toLowerCase();
+                if (t.includes('invest') || t.includes('tier 1') || t.includes('tier 2')) return { tier: 'invest', class: 'company-tier-invest', badge: 'bg-success', text: '🟢 Invest', icon: 'fas fa-star text-success' };
+                if (t.includes('monitor') || t.includes('hold') || t.includes('tier 3')) return { tier: 'monitor', class: 'company-tier-monitor', badge: 'bg-warning text-dark', text: '🟡 Monitor', icon: 'fas fa-exclamation-triangle text-warning' };
+                if (t.includes('avoid') || t.includes('tier 4')) return { tier: 'avoid', class: 'company-tier-avoid', badge: 'bg-danger', text: '🔴 Avoid', icon: 'fas fa-times-circle text-danger' };
+                return null;
+            }
+
+            if (data.companies.length === 0) {
+                container.innerHTML = '<div class="col-12 text-center"><p>No companies found matching your criteria.</p></div>';
+                return;
+            }
+
+            const companiesHtml = data.companies.map(company => {
+                // Try to use backend-calculated tier first
+                let tierInfo = mapServerTierToClient(company.investment_tier);
+                if (!tierInfo) {
+                    // Fallback from attractiveness score using 3-tier thresholds
+                    const score = Number(company.attractiveness_score ?? 0);
+                    if (score >= 60) tierInfo = { tier: 'invest', class: 'company-tier-invest', badge: 'bg-success', text: '🟢 Invest', icon: 'fas fa-star text-success' };
+                    else if (score >= 45) tierInfo = { tier: 'monitor', class: 'company-tier-monitor', badge: 'bg-warning text-dark', text: '🟡 Monitor', icon: 'fas fa-exclamation-triangle text-warning' };
+                    else tierInfo = { tier: 'avoid', class: 'company-tier-avoid', badge: 'bg-danger', text: '🔴 Avoid', icon: 'fas fa-times-circle text-danger' };
+                }
+
+                const valuationText = (company.valuation_usd / 1000000).toFixed(1);
+                const scoreVal = Number.isFinite(Number(company.attractiveness_score)) ? Math.round(Number(company.attractiveness_score)) : null;
+
+                return `
+                        <div class="col-md-4 mb-4">
+                            <div class="card company-card ${tierInfo.class}" data-tier="${tierInfo.tier}" data-company-id="${company.company_id}">
+                                <div class="card-body">
+                                    <h5 class="card-title">${company.company_name}</h5>
+                                    <p class="card-subtitle mb-2 text-muted">${company.industry} • ${company.location}</p>
+                                    <p class="card-text small">${company.funding_round} • ${company.team_size} employees</p>
+
+                                    <div class="d-flex justify-content-start">
+                                        <div>
+                                            <div class="text-muted small">Valuation</div>
+                                            <div class="fw-bold">$${valuationText}M</div>
+                                        </div>
+                                    </div>
+
+                                    <div class="mt-3 d-flex align-items-center gap-2">
+                                        <span class="badge ${tierInfo.badge}">${tierInfo.text}</span>
+                                        <span class="badge bg-light text-dark border">Score: ${scoreVal !== null ? `${scoreVal}%` : '—'}</span>
+                                    </div>
+
+                                    <div class="mt-3 d-flex gap-2">
+                                        <button class="btn btn-outline-primary btn-sm" onclick="analyzeCompany('${company.company_id}', event)"><i class="fas fa-chart-line"></i> Analyze</button>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>`;
+            }).join('');
+
+            container.innerHTML = companiesHtml;
+        }
+        
+        function applyTierFilter() {
+            const tierFilter = document.getElementById('tierFilter').value;
+            const companyCards = document.querySelectorAll('.company-card');
+            
+            companyCards.forEach(card => {
+                if (tierFilter === '' || card.dataset.tier === tierFilter) {
+                    card.parentElement.style.display = 'block';
+                } else {
+                    card.parentElement.style.display = 'none';
+                }
+            });
+        }
+        
+        function updatePagination(pagination) {
+            const container = document.getElementById('companyPagination');
+            
+            if (pagination.total_pages <= 1) {
+                container.innerHTML = '';
+                return;
+            }
+            
+            let paginationHtml = '';
+            
+            // Previous button
+            if (pagination.page > 1) {
+                paginationHtml += `<li class="page-item"><a class="page-link" href="#" onclick="loadCompanies(${pagination.page - 1}, currentFilters)">Previous</a></li>`;
+            }
+            
+            // Page numbers
+            const startPage = Math.max(1, pagination.page - 2);
+            const endPage = Math.min(pagination.total_pages, pagination.page + 2);
+            
+            for (let i = startPage; i <= endPage; i++) {
+                const isActive = i === pagination.page ? 'active' : '';
+                paginationHtml += `<li class="page-item ${isActive}"><a class="page-link" href="#" onclick="loadCompanies(${i}, currentFilters)">${i}</a></li>`;
+            }
+            
+            // Next button
+            if (pagination.page < pagination.total_pages) {
+                paginationHtml += `<li class="page-item"><a class="page-link" href="#" onclick="loadCompanies(${pagination.page + 1}, currentFilters)">Next</a></li>`;
+            }
+            
+            container.innerHTML = paginationHtml;
+        }
+        
+        function updateFilters(filters) {
+            // Determine availability of consolidated options
+            hasGroupedIndustry = Array.isArray(filters.industry_groups) && filters.industry_groups.length > 0;
+            hasRegions = Array.isArray(filters.regions) && filters.regions.length > 0;
+
+            // Update industry/industry group filter
+            const industrySelect = document.getElementById('industryFilter');
+            const industryOptions = hasGroupedIndustry ? filters.industry_groups : (filters.industries || []);
+            const prevIndustry = industrySelect.value;
+            industrySelect.innerHTML = hasGroupedIndustry
+                ? '<option value="">All Industry Groups</option>'
+                : '<option value="">All Industries</option>';
+            industryOptions.forEach(industry => {
+                industrySelect.innerHTML += `<option value="${industry}">${industry}</option>`;
+            });
+            // Restore previous selection if still present
+            if ([...industrySelect.options].some(o => o.value === prevIndustry)) industrySelect.value = prevIndustry;
+            
+            // Update location/region filter
+            const locationSelect = document.getElementById('locationFilter');
+            const locationOptions = hasRegions ? filters.regions : (filters.locations || []);
+            const prevLocation = locationSelect.value;
+            locationSelect.innerHTML = hasRegions
+                ? '<option value="">All Regions</option>'
+                : '<option value="">All Locations</option>';
+            locationOptions.forEach(location => {
+                locationSelect.innerHTML += `<option value="${location}">${location}</option>`;
+            });
+            if ([...locationSelect.options].some(o => o.value === prevLocation)) locationSelect.value = prevLocation;
+            
+            // Update funding round filter
+            // Removed at user's request
+        }
+        
+        
+        function searchCompanies() {
+            const industryValue = document.getElementById('industryFilter').value;
+            const locationValue = document.getElementById('locationFilter').value;
+            const tierValue = document.getElementById('tierFilter').value;
+
+            const filters = {};
+            if (industryValue) {
+                if (hasGroupedIndustry) filters.industry_group = industryValue; else filters.industry = industryValue;
+            }
+            if (locationValue) {
+                if (hasRegions) filters.region = locationValue; else filters.location = locationValue;
+            }
+            if (tierValue) {
+                filters.tier = tierValue; // server-side tier filter (invest|monitor|avoid)
+            }
+
+            loadCompanies(1, filters);
+        }
+        
+        function selectCompany(companyId) {
+            // For consistency, reuse the comprehensive analyze flow
+            analyzeCompany(companyId);
+        }
+        
+        // Company comparison functionality
+        let selectedCompanies = [];
+        
+        function toggleCompanySelection(companyId, event) {
+            event.stopPropagation(); // Prevent triggering selectCompany
+            
+            const index = selectedCompanies.indexOf(companyId);
+            if (index === -1) {
+                if (selectedCompanies.length < 4) { // Limit to 4 companies
+                    selectedCompanies.push(companyId);
+                } else {
+                    alert('You can compare up to 4 companies at once.');
+                    return;
+                }
+            } else {
+                selectedCompanies.splice(index, 1);
+            }
+            
+            updateComparisonUI();
+        }
+        
+        function updateComparisonUI() {
+            document.getElementById('comparisonCount').textContent = selectedCompanies.length;
+            document.getElementById('compareBtn').disabled = selectedCompanies.length < 2;
+            document.getElementById('comparisonPanel').style.display = selectedCompanies.length > 0 ? 'block' : 'none';
+            
+            // Update company card selection visual feedback
+            document.querySelectorAll('.company-card').forEach(card => {
+                const companyId = card.getAttribute('data-company-id');
+                if (companyId && selectedCompanies.includes(companyId)) {
+                    card.style.borderColor = '#007bff';
+                    card.style.backgroundColor = '#f8f9ff';
+                } else {
+                    card.style.borderColor = '';
+                    card.style.backgroundColor = '';
+                }
+            });
+        }
+        
+        function clearComparison() {
+            selectedCompanies = [];
+            updateComparisonUI();
+        }
+        
+        function showComparison() {
+            if (selectedCompanies.length < 2) {
+                alert('Please select at least 2 companies to compare.');
+                return;
+            }
+            
+            // Fetch all selected companies
+            const promises = selectedCompanies.map(id => 
+                fetch(`/api/companies/${id}`)
+                    .then(response => {
+                        if (!response.ok) {
+                            throw new Error(`HTTP error! status: ${response.status}`);
+                        }
+                        return response.json();
+                    })
+                    .then(data => {
+                        if (data.error) {
+                            throw new Error(data.error);
+                        }
+                        return data;
+                    })
+            );
+            
+            Promise.all(promises)
+                .then(companies => {
+                    displayComparisonModal(companies);
+                })
+                .catch(error => {
+                    console.error('Error loading comparison data:', error);
+                    alert('Error loading comparison data. Please try again.');
+                });
+        }
+        
+        function displayComparisonModal(companies) {
+            const content = document.getElementById('comparisonContent');
+            
+            // Create comparison table
+            let html = `
+                <div class="table-responsive">
+                    <table class="table table-bordered">
+                        <thead class="table-dark">
+                            <tr>
+                                <th>Metric</th>
+                                ${companies.map(c => `<th class="text-center">${c.company_name}</th>`).join('')}
+                            </tr>
+                        </thead>
+                        <tbody>
+                            <tr>
+                                <td><strong>Industry</strong></td>
+                                ${companies.map(c => `<td class="text-center">${c.industry}</td>`).join('')}
+                            </tr>
+                            <tr>
+                                <td><strong>Location</strong></td>
+                                ${companies.map(c => `<td class="text-center">${c.location}</td>`).join('')}
+                            </tr>
+                            <tr>
+                                <td><strong>Funding Round</strong></td>
+                                ${companies.map(c => `<td class="text-center">${c.funding_round}</td>`).join('')}
+                            </tr>
+                            <tr>
+                                <td><strong>Team Size</strong></td>
+                                ${companies.map(c => `<td class="text-center">${c.team_size}</td>`).join('')}
+                            </tr>
+                            <tr>
+                                <td><strong>Funding Amount</strong></td>
+                                ${companies.map(c => `<td class="text-center">$${(c.funding_amount_usd/1000000).toFixed(1)}M</td>`).join('')}
+                            </tr>
+                            <tr>
+                                <td><strong>Valuation</strong></td>
+                                ${companies.map(c => `<td class="text-center">$${(c.valuation_usd/1000000).toFixed(1)}M</td>`).join('')}
+                            </tr>
+                            <tr>
+                                <td><strong>Revenue</strong></td>
+                                ${companies.map(c => `<td class="text-center">$${(c.revenue_usd/1000000).toFixed(1)}M</td>`).join('')}
+                            </tr>
+                            <tr>
+                                <td><strong>Success Status</strong></td>
+                                ${companies.map(c => `<td class="text-center"><span class="badge ${c.is_successful ? 'bg-success' : 'bg-danger'}">${c.status}</span></td>`).join('')}
+                            </tr>
+                            <tr>
+                                <td><strong>Success Score</strong></td>
+                                ${companies.map(c => `<td class="text-center">${(c.success_score * 100).toFixed(1)}%</td>`).join('')}
+                            </tr>
+                        </tbody>
+                    </table>
+                </div>
+                
+                <div class="row mt-4">
+                    ${companies.map(company => `
+                        <div class="col-md-${Math.floor(12/companies.length)}">
+                            <div class="card">
+                                <div class="card-header text-center">
+                                    <h6>${company.company_name}</h6>
+                                </div>
+                                <div class="card-body text-center">
+                                    <button class="btn btn-primary btn-sm" onclick="loadSingleCompany('${company.company_id}')">
+                                        <i class="fas fa-play"></i> Analyze This Company
+                                    </button>
+                                </div>
+                            </div>
+                        </div>
+                    `).join('')}
+                </div>
+            `;
+            
+            content.innerHTML = html;
+            
+            // Show modal
+            const modal = new bootstrap.Modal(document.getElementById('comparisonModal'));
+            modal.show();
+        }
+        
+        function analyzeCompany(companyId, event) {
+            if (event) {
+                event.stopPropagation();
+            }
+            
+            console.log('Analyzing company:', companyId);
+            
+            // Show analysis modal with loading state
+            const modal = new bootstrap.Modal(document.getElementById('analysisModal'));
+            document.getElementById('analysisLoading').style.display = 'block';
+            document.getElementById('analysisContent').style.display = 'none';
+            modal.show();
+            
+            // Fetch comprehensive analysis
+            fetch(`/api/companies/${companyId}/analyze`)
+                .then(response => {
+                    if (!response.ok) {
+                        throw new Error(`HTTP error! status: ${response.status}`);
+                    }
+                    return response.json();
+                })
+                .then(analysis => {
+                    console.log('Analysis data received:', analysis);
+                    
+                    if (analysis.error) {
+                        throw new Error(analysis.error);
+                    }
+                    
+                    // Update modal title
+                    const nameSafe = (analysis.company_info && analysis.company_info.name) ? analysis.company_info.name : 'Company';
+                    document.getElementById('analysisCompanyName').textContent = `${nameSafe} Analysis`;
+                    
+                    // Build analysis content into DOM
+                    displayCompanyAnalysis(analysis);
+                    
+                    // Hide loading and show content
+                    document.getElementById('analysisLoading').style.display = 'none';
+                    document.getElementById('analysisContent').style.display = 'block';
+                })
+                .catch(error => {
+                    console.error('Error analyzing company:', error);
+                    document.getElementById('analysisLoading').innerHTML = `
+                        <div class="alert alert-danger">
+                            <h5><i class="fas fa-exclamation-triangle"></i> Analysis Failed</h5>
+                            <p>Error: ${error.message}</p>
+                            <button class="btn btn-primary" onclick="analyzeCompany('${companyId}')">
+                                <i class="fas fa-redo"></i> Retry Analysis
+                            </button>
+                        </div>
+                    `;
+                });
+        }
+        
+        function displayCompanyAnalysis(analysis) {
+            const content = document.getElementById('analysisContent');
+            
+            // Safely extract data with defaults
+            const ml_predictions = analysis.ml_predictions || {};
+            const company_info = analysis.company_info || {};
+            const key_metrics = analysis.key_metrics || {};
+            
+            const attractivenessNum = Number(ml_predictions.attractiveness_score || 0);
+            const attractiveness = attractivenessNum.toFixed(1);
+            // success_probability is 0-1 from backend; convert to % for display and logic
+            const successProbRaw = Number(ml_predictions.success_probability || 0);
+            const success_prob_pct = (successProbRaw * 100);
+            const success_prob = success_prob_pct.toFixed(1);
+            const recommendation = ml_predictions.recommendation || ml_predictions.investment_recommendation || 'Evaluate';
+            const investment_tier = ml_predictions.investment_tier || 'Monitor';
+            
+            // Determine risk level based on success probability
+            let risk_level = 'Medium';
+            if (success_prob_pct > 70) risk_level = 'Low';
+            else if (success_prob_pct < 30) risk_level = 'High';
+            
+            // Determine investment tier based on attractiveness score (3-tier system)
+            function getInvestmentTier(score) {
+                const s = Number(score) || 0;
+                if (s >= 60) return 'Invest • High conviction';
+                if (s >= 45) return 'Monitor • Promising, watchlist';
+                return 'Avoid • Risk outweighs return';
+            }
+            
+            const tier_display = getInvestmentTier(attractiveness);
+            
+            // Determine recommendation card styling based on tier
+            let recommendationCardClass = 'bg-info';
+            let tierIcon = '📊';
+            
+            if (attractivenessNum >= 60) {
+                recommendationCardClass = 'bg-success';
+                tierIcon = '🟢';
+            } else if (attractivenessNum >= 45) {
+                recommendationCardClass = 'bg-warning';
+                tierIcon = '🟡';
+            } else {
+                recommendationCardClass = 'bg-danger';
+                tierIcon = '🔴';
+            }
+            
+            // Build enhanced analysis display with tabbed interface
+            const html = `
+                <!-- Analysis Summary Cards -->
+                <div class="row mb-4 summary-cards">
+                    <div class="col-md-3">
+                        <div class="card text-center bg-warning text-white">
+                            <div class="card-body">
+                                <h4>${attractiveness}%</h4>
+                                <small>Investment Attractiveness</small>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="col-md-3">
+                        <div class="card text-center bg-success text-white">
+                            <div class="card-body">
+                                <h4>${success_prob}%</h4>
+                                <small>Success Probability</small>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="col-md-3">
+                        <div class="card text-center ${recommendationCardClass} text-white">
+                            <div class="card-body">
+                                <h4>${tierIcon} ${tier_display}</h4>
+                                <small>Investment Recommendation</small>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="col-md-3">
+                        <div class="card text-center bg-warning text-white">
+                            <div class="card-body">
+                                <h4>${risk_level}</h4>
+                                <small>Risk Level</small>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                
+                <!-- Enhanced Charts Tabs -->
+                <ul class="nav nav-tabs" id="analysisChartTabs" role="tablist">
+                    <li class="nav-item" role="presentation">
+                        <button class="nav-link active" id="overview-tab" data-bs-toggle="tab" data-bs-target="#overview" type="button" role="tab">
+                            <i class="fas fa-chart-pie"></i> Overview
+                        </button>
+                    </li>
+                    <li class="nav-item" role="presentation">
+                        <button class="nav-link" id="benchmarks-tab" data-bs-toggle="tab" data-bs-target="#benchmarks" type="button" role="tab">
+                            <i class="fas fa-chart-bar"></i> Benchmarks
+                        </button>
+                    </li>
+                    <li class="nav-item" role="presentation">
+                        <button class="nav-link" id="fundamentals-tab" data-bs-toggle="tab" data-bs-target="#fundamentals" type="button" role="tab">
+                            <i class="fas fa-chart-area"></i> Fundamentals
+                        </button>
+                    </li>
+                    <li class="nav-item" role="presentation">
+                        <button class="nav-link" id="risk-tab" data-bs-toggle="tab" data-bs-target="#risk" type="button" role="tab">
+                            <i class="fas fa-exclamation-triangle"></i> Risk Analysis
+                        </button>
+                    </li>
+                    <li class="nav-item" role="presentation">
+                        <button class="nav-link" id="commentary-tab" data-bs-toggle="tab" data-bs-target="#commentary" type="button" role="tab">
+                            <i class="fas fa-comments"></i> Investment Commentary
+                        </button>
+                    </li>
+                </ul>
+                
+                <!-- Tab Content -->
+                <div class="tab-content" id="analysisChartTabsContent">
+                    <!-- Overview Tab -->
+                    <div class="tab-pane fade show active" id="overview" role="tabpanel">
+                        <div class="row mt-3">
+                            <div class="col-md-6">
+                                <div class="card">
+                                    <div class="card-header">
+                                        <h5><i class="fas fa-bullseye"></i> Deal Attractiveness</h5>
+                                    </div>
+                                    <div class="card-body">
+                                        <canvas id="attractivenessGaugeChart" width="400" height="300"></canvas>
+                                    </div>
+                                </div>
+                            </div>
+                            <div class="col-md-6">
+                                <div class="card">
+                                    <div class="card-header">
+                                        <h5><i class="fas fa-chart-pie"></i> Investment Components</h5>
+                                    </div>
+                                    <div class="card-body">
+                                        <canvas id="componentScoresChart" width="400" height="300"></canvas>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <!-- Benchmarks Tab -->
+                    <div class="tab-pane fade" id="benchmarks" role="tabpanel">
+                        <div class="row mt-3">
+                            <div class="col-md-6">
+                                <div class="card">
+                                    <div class="card-header">
+                                        <h5><i class="fas fa-chart-bar"></i> Success Probability</h5>
+                                    </div>
+                                    <div class="card-body">
+                                        <canvas id="successComparisonChart" width="400" height="300"></canvas>
+                                    </div>
+                                </div>
+                            </div>
+                            <div class="col-md-6">
+                                <div class="card">
+                                    <div class="card-header">
+                                        <h5><i class="fas fa-industry"></i> Industry Success Rates</h5>
+                                    </div>
+                                    <div class="card-body">
+                                        <canvas id="industrySuccessChart" width="400" height="300"></canvas>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <!-- Fundamentals Tab -->
+                    <div class="tab-pane fade" id="fundamentals" role="tabpanel">
+                        <div class="row mt-3">
+                            <div class="col-md-6">
+                                <div class="card">
+                                    <div class="card-header">
+                                        <h5><i class="fas fa-chart-area"></i> Business Fundamentals</h5>
+                                    </div>
+                                    <div class="card-body">
+                                        <canvas id="businessFundamentalsChart" width="400" height="300"></canvas>
+                                    </div>
+                                </div>
+                            </div>
+                            <div class="col-md-6">
+                                <div class="card">
+                                    <div class="card-header">
+                                        <h5><i class="fas fa-chart-pie"></i> Success Factors</h5>
+                                    </div>
+                                    <div class="card-body">
+                                        <canvas id="featureContributionChart" width="400" height="300"></canvas>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <!-- Risk Analysis Tab -->
+                    <div class="tab-pane fade" id="risk" role="tabpanel">
+                        <div class="row mt-3">
+                            <div class="col-md-8">
+                                <div class="card">
+                                    <div class="card-header">
+                                        <h5><i class="fas fa-chart-scatter"></i> Risk-Return Analysis</h5>
+                                    </div>
+                                    <div class="card-body">
+                                        <canvas id="riskReturnChart" width="600" height="400"></canvas>
+                                    </div>
+                                </div>
+                            </div>
+                            <div class="col-md-4">
+                                <div class="card">
+                                    <div class="card-header">
+                                        <h5><i class="fas fa-exclamation-triangle"></i> Risk Factors</h5>
+                                    </div>
+                                    <div class="card-body">
+                                        <div id="riskFactorsList">
+                                            <!-- Risk factors will be populated here -->
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <!-- Investment Commentary Tab -->
+                    <div class="tab-pane fade" id="commentary" role="tabpanel">
+                        <div class="row mt-3">
+                            <div class="col-md-12">
+                                <div class="card">
+                                    <div class="card-header">
+                                        <h5><i class="fas fa-comments"></i> AI-Generated Investment Analysis</h5>
+                                        <small class="text-muted">Comprehensive investment commentary based on machine learning analysis</small>
+                                    </div>
+                                    <div class="card-body">
+                                        <div id="investmentCommentaryContent">
+                                            <!-- Investment commentary will be populated here -->
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                
+                <!-- Company Details Section -->
+                <div class="row mt-4">
+                    <div class="col-md-12">
+                        <div class="card">
+                            <div class="card-header">
+                                <h5><i class="fas fa-table"></i> Company Overview</h5>
+                            </div>
+                            <div class="card-body">
+                                <div class="row">
+                                    <div class="col-md-6">
+                                        <table class="table table-sm">
+                                            <tr><td><strong>Company:</strong></td><td>${company_info.name || 'Unknown'}</td></tr>
+                                            <tr><td><strong>Industry:</strong></td><td>${company_info.industry || 'Unknown'}</td></tr>
+                                            <tr><td><strong>Location:</strong></td><td>${company_info.location || 'Unknown'}</td></tr>
+                                            <tr><td><strong>Funding Round:</strong></td><td>${company_info.funding_round || 'Unknown'}</td></tr>
+                                            <tr><td><strong>Team Size:</strong></td><td>${key_metrics.team_size || 0}</td></tr>
+                                            <tr><td><strong>Years Since Founding:</strong></td><td>${parseFloat(key_metrics.years_operating || 0).toFixed(1)}</td></tr>
+                                        </table>
+                                    </div>
+                                    <div class="col-md-6">
+                                        <table class="table table-sm">
+                                            <tr><td><strong>Funding Amount:</strong></td><td>$${formatNumber(key_metrics.funding_amount || 0)}</td></tr>
+                                            <tr><td><strong>Valuation:</strong></td><td>$${formatNumber(key_metrics.valuation || 0)}</td></tr>
+                                            <tr><td><strong>Revenue:</strong></td><td>$${formatNumber(key_metrics.revenue || 0)}</td></tr>
+                                            <tr><td><strong>Market Size:</strong></td><td>$${formatNumber((key_metrics.market_size || 0) * 1e9)}</td></tr>
+                                            <tr><td><strong>Investors:</strong></td><td>${key_metrics.num_investors || 0}</td></tr>
+                                        </table>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            `;
+            // Inject built HTML into analysisContent
+            content.innerHTML = html;
+
+            // Populate risk factors
+            displayRiskFactors(analysis.risk_factors || []);
+            
+            // Populate investment commentary - check both possible locations
+            const commentary = analysis.investment_commentary || 
+                              analysis.ml_predictions?.investment_commentary || 
+                              analysis.company_analysis?.investment_commentary || 
+                              [];
+            console.log('Debug: Commentary data found:', commentary.length, 'items');
+            console.log('Debug: Commentary data:', commentary);
+            if (commentary.length > 0) {
+                console.log('🎉 COMMENTARY FOUND! Tab should be visible!');
+                // Test if tab element exists
+                const commentaryTab = document.getElementById('commentary-tab');
+                console.log('Commentary tab element found:', !!commentaryTab);
+                if (commentaryTab) {
+                    console.log('Tab element HTML:', commentaryTab.outerHTML);
+                } else {
+                    console.error('❌ Commentary tab element NOT FOUND in DOM!');
+                }
+            }
+            displayInvestmentCommentary(commentary);
+            
+            // Create charts after DOM is updated
+            setTimeout(() => {
+                createEnhancedAnalysisCharts(analysis);
+            }, 100);
+        }
+        
+        function displayRiskFactors(riskFactors) {
+            const container = document.getElementById('riskFactorsList');
+            if (!container) return;
+            
+            if (!riskFactors || riskFactors.length === 0) {
+                container.innerHTML = '<p class="text-muted">No significant risk factors identified.</p>';
+                return;
+            }
+            
+            let html = '';
+            riskFactors.forEach(risk => {
+                const badgeClass = risk.severity === 'high' ? 'bg-danger' : 
+                                 risk.severity === 'medium' ? 'bg-warning' : 'bg-info';
+                html += `
+                    <div class="mb-2">
+                        <span class="badge ${badgeClass}">${risk.factor}</span>
+                        <small class="d-block mt-1">${risk.description}</small>
+                    </div>
+                `;
+            });
+            container.innerHTML = html;
+        }
+        
+        function displayInvestmentCommentary(commentary) {
+            console.log('displayInvestmentCommentary called with:', commentary);
+            const container = document.getElementById('investmentCommentaryContent');
+            console.log('Commentary container found:', !!container);
+            if (!container) {
+                console.error('investmentCommentaryContent element not found!');
+                return;
+            }
+            
+            if (!commentary || commentary.length === 0) {
+                console.log('No commentary data, showing placeholder');
+                container.innerHTML = '<p class="text-muted">No investment commentary available.</p>';
+                return;
+            }
+            
+            let html = '<div class="investment-commentary">';
+            commentary.forEach((comment, index) => {
+                // Extract emoji and clean text
+                let icon = '💡';
+                let text = comment;
+                
+                // Extract any emoji from the beginning of the comment
+                try {
+                    const emojiMatch = comment.match(/^(\p{Emoji_Presentation}|\p{Emoji}\uFE0F)/u);
+                    if (emojiMatch) {
+                        icon = emojiMatch[1];
+                        text = comment.substring(emojiMatch[0].length).trim();
+                    }
+                } catch (e) {
+                    // Fallback if regex fails - just extract common emojis manually
+                    const commonEmojis = ['🌟', '✅', '⚠️', '🔴', '💰', '📈', '🏪', '⚔️', '📉', '💵', '💪', '⚖️', '🚨', '💸', '👥', '🎯', '👤', '🚀', '📊', '🔎', '💡', '💎', '🛑'];
+                    for (const emoji of commonEmojis) {
+                        if (comment.startsWith(emoji)) {
+                            icon = emoji;
+                            text = comment.substring(emoji.length).trim();
+                            break;
+                        }
+                    }
+                }
+                
+                // Determine card style based on content
+                let cardClass = 'border-primary';
+                if (text.toLowerCase().includes('strong buy') || text.toLowerCase().includes('excellent')) {
+                    cardClass = 'border-success';
+                } else if (text.toLowerCase().includes('avoid') || text.toLowerCase().includes('concerning')) {
+                    cardClass = 'border-danger';
+                } else if (text.toLowerCase().includes('monitor') || text.toLowerCase().includes('hold') || text.toLowerCase().includes('moderate')) {
+                    cardClass = 'border-warning';
+                }
+                
+                html += `
+                    <div class="card mb-3 ${cardClass}">
+                        <div class="card-body">
+                            <div class="d-flex align-items-start">
+                                <div class="commentary-icon me-3" style="font-size: 1.5rem;">${icon}</div>
+                                <div class="commentary-text flex-grow-1">
+                                    <p class="mb-0">${text}</p>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                `;
+            });
+            html += '</div>';
+            
+            console.log('Setting commentary HTML:', html.length, 'characters');
+            container.innerHTML = html;
+            console.log('Commentary content updated successfully');
+        }
+        
+        // --- Unified Chart Color System ---
+        const BRAND = {
+            primary: '#2f80ed',       // brand blue
+            success: '#10b981',       // teal/green
+            warning: '#f39c12',       // orange
+            danger:  '#e74c3c',       // red
+            navy:    '#1f2a44',       // deep navy
+            neutral: '#cbd5e1',       // slate-300
+            neutralLight: '#e5e7eb',  // gray-200
+            neutralDark:  '#64748b'   // slate-500
+        };
+        const CATEGORICAL = [
+            BRAND.primary,
+            BRAND.success,
+            BRAND.warning,
+            BRAND.navy,
+            BRAND.neutralDark,
+            '#8b5cf6',  // violet
+            '#14b8a6'   // teal alt
+        ];
+        function withAlpha(hex, alpha) {
+            const res = /^#?([a-f\d]{2})([a-f\d]{2})([a-f\d]{2})$/i.exec(hex);
+            if (!res) return hex;
+            const r = parseInt(res[1], 16);
+            const g = parseInt(res[2], 16);
+            const b = parseInt(res[3], 16);
+            return `rgba(${r}, ${g}, ${b}, ${alpha})`;
+        }
+        function applyBrandPaletteToConfig(config, context = {}) {
+            try {
+                const type = config.type;
+                if (!config.data || !Array.isArray(config.data.datasets)) return config;
+                config.data.datasets.forEach((ds, idx) => {
+                    if (type === 'bar') {
+                        if (Array.isArray(ds.data) && ds.data.length > 1 && !Array.isArray(ds.backgroundColor)) {
+                            ds.backgroundColor = Array(ds.data.length).fill(BRAND.primary);
+                        }
+                        if (typeof ds.label === 'string') {
+                            const label = ds.label.toLowerCase();
+                            if (label.includes('this deal') || label.includes('score')) ds.backgroundColor = BRAND.primary;
+                            if (label.includes('industry')) ds.backgroundColor = BRAND.neutral;
+                            if (label.includes('top')) ds.backgroundColor = BRAND.success;
+                        }
+                        ds.borderColor = ds.borderColor || withAlpha(BRAND.navy, 0.2);
+                    } else if (type === 'doughnut' || type === 'pie') {
+                        if (Array.isArray(ds.data)) {
+                            if (ds.data.length === 2 && context.theme === 'gauge') {
+                                ds.backgroundColor = [BRAND.primary, BRAND.neutralLight];
+                            } else {
+                                ds.backgroundColor = ds.data.map((_, i) => CATEGORICAL[i % CATEGORICAL.length]);
+                            }
+                        }
+                        ds.borderWidth = ds.borderWidth ?? 1;
+                    } else if (type === 'radar') {
+                        ds.backgroundColor = withAlpha(BRAND.primary, 0.15);
+                        ds.borderColor = BRAND.primary;
+                        ds.pointBackgroundColor = BRAND.primary;
+                        ds.pointBorderColor = '#fff';
+                    } else if (type === 'scatter') {
+                        const label = (ds.label || '').toLowerCase();
+                        if (label.includes('this deal')) {
+                            ds.backgroundColor = withAlpha(BRAND.primary, 0.9);
+                            ds.borderColor = BRAND.primary;
+                        } else {
+                            ds.backgroundColor = withAlpha(BRAND.neutralDark, 0.4);
+                            ds.borderColor = withAlpha(BRAND.neutralDark, 0.7);
+                        }
+                    }
+                });
+            } catch (e) { /* no-op on palette application failure */ }
+            return config;
+        }
+
+        function createEnhancedAnalysisCharts(analysis) {
+            const ml_predictions = analysis.ml_predictions || {};
+            const key_metrics = analysis.key_metrics || {};
+            
+            // If dashboard_charts is available from API, use it, otherwise create charts from ml_predictions
+            if (analysis.dashboard_charts && Object.keys(analysis.dashboard_charts).length > 0) {
+                // Use API-generated chart configurations
+                const dashboardCharts = analysis.dashboard_charts;
+                
+                if (dashboardCharts.attractiveness_gauge) {
+                    createChartFromConfig('attractivenessGaugeChart', applyBrandPaletteToConfig(dashboardCharts.attractiveness_gauge, { theme: 'gauge' }));
+                }
+                if (dashboardCharts.component_scores) {
+                    createChartFromConfig('componentScoresChart', applyBrandPaletteToConfig(dashboardCharts.component_scores));
+                }
+                if (dashboardCharts.success_comparison) {
+                    createChartFromConfig('successComparisonChart', applyBrandPaletteToConfig(dashboardCharts.success_comparison));
+                }
+                if (dashboardCharts.industry_success) {
+                    createChartFromConfig('industrySuccessChart', applyBrandPaletteToConfig(dashboardCharts.industry_success));
+                }
+                if (dashboardCharts.business_fundamentals) {
+                    createChartFromConfig('businessFundamentalsChart', applyBrandPaletteToConfig(dashboardCharts.business_fundamentals));
+                }
+                if (dashboardCharts.feature_contribution) {
+                    createChartFromConfig('featureContributionChart', applyBrandPaletteToConfig(dashboardCharts.feature_contribution));
+                }
+                if (dashboardCharts.risk_return_analysis) {
+                    createChartFromConfig('riskReturnChart', applyBrandPaletteToConfig(dashboardCharts.risk_return_analysis));
+                }
+            } else {
+                // Fallback: Create charts from ml_predictions data
+                createEnhancedChartsFromPredictions(ml_predictions, key_metrics, analysis);
+            }
+        }
+        
+        function createEnhancedChartsFromPredictions(ml_predictions, key_metrics, analysis) {
+            // 1. Deal Attractiveness Gauge
+            const attractiveness_score = ml_predictions.attractiveness_score || 0;
+            const gaugeColor = attractiveness_score >= 75 ? BRAND.success
+                              : attractiveness_score >= 60 ? BRAND.primary
+                              : attractiveness_score >= 45 ? BRAND.warning
+                              : BRAND.danger;
+            const attractivenessConfig = {
+                type: 'doughnut',
+                data: {
+                    labels: ['Attractiveness Score', 'Room for Improvement'],
+                    datasets: [{
+                        data: [attractiveness_score, 100 - attractiveness_score],
+                        backgroundColor: [gaugeColor, BRAND.neutralLight],
+                        borderWidth: 0
+                    }]
+                },
+                options: {
+                    cutout: '70%',
+                    plugins: {
+                        legend: { display: false },
+                        title: { display: true, text: 'Deal Attractiveness Gauge' }
+                    }
+                }
+            };
+            createChartFromConfig('attractivenessGaugeChart', attractivenessConfig);
+            
+            // 2. Component Scores Bar Chart  
+            const componentConfig = {
+                type: 'bar',
+                data: {
+                    labels: ['Market Score', 'Team Score', 'Financial Score', 'Growth Score'],
+                    datasets: [{
+                        label: 'Component Scores',
+                        data: [
+                            ml_predictions.market_score || 25,
+                            ml_predictions.team_score || 25,
+                            ml_predictions.financial_score || 25,
+                            ml_predictions.growth_score || 25
+                        ],
+                        backgroundColor: withAlpha(BRAND.primary, 0.85),
+                        borderColor: withAlpha(BRAND.navy, 0.2),
+                        borderWidth: 1
+                    }]
+                },
+                options: {
+                    scales: { y: { max: 100, min: 0 } },
+                    plugins: { title: { display: true, text: 'Investment Component Analysis' } }
+                }
+            };
+            createChartFromConfig('componentScoresChart', componentConfig);
+            
+            // 3. Success Probability Comparison
+            const success_prob = (ml_predictions.success_probability || 0) * 100;
+            const successConfig = {
+                type: 'bar',
+                data: {
+                    labels: ['This Deal', 'Industry Avg', 'Top Quartile'],
+                    datasets: [{
+                        label: 'Success Probability (%)',
+                        data: [success_prob, 45, 75],
+                        backgroundColor: [BRAND.primary, BRAND.neutral, BRAND.success],
+                        borderWidth: 1
+                    }]
+                },
+                options: {
+                    indexAxis: 'y',
+                    scales: { x: { max: 100, min: 0 } },
+                    plugins: { title: { display: true, text: 'Success Probability Benchmarking' } }
+                }
+            };
+            createChartFromConfig('successComparisonChart', successConfig);
+            
+            // 4. Industry Success Rates
+            const company_industry = analysis.company_info?.industry || 'Unknown';
+            const industryConfig = {
+                type: 'bar',
+                data: {
+                    labels: ['Fintech', 'Healthcare', 'SaaS', 'E-commerce', 'AI/ML'],
+                    datasets: [{
+                        label: 'Success Rate (%)',
+                        data: [68, 62, 71, 45, 59],
+                        backgroundColor: ['Fintech', 'Healthcare', 'SaaS', 'E-commerce', 'AI/ML'].map(
+                            industry => company_industry === industry ? BRAND.primary : BRAND.neutral
+                        ),
+                        borderWidth: 1
+                    }]
+                },
+                options: {
+                    indexAxis: 'y',
+                    scales: { x: { max: 80, min: 0 } },
+                    plugins: { title: { display: true, text: 'Industry Success Rates' } }
+                }
+            };
+            createChartFromConfig('industrySuccessChart', industryConfig);
+            
+            // 5. Business Fundamentals Radar
+            const fundamentalsConfig = {
+                type: 'radar',
+                data: {
+                    labels: ['Market Size', 'Team Strength', 'Revenue', 'Funding', 'Competition'],
+                    datasets: [{
+                        label: 'Business Fundamentals',
+                        data: [
+                            Math.min(100, (key_metrics.market_size || 1) * 10),
+                            Math.min(100, (key_metrics.team_size || 10) * 4),
+                            Math.min(100, (key_metrics.revenue || 100000) / 10000),
+                            Math.min(100, (key_metrics.funding_amount || 1000000) / 100000),
+                            100 - (key_metrics.competition_level || 5) * 10
+                        ],
+                        backgroundColor: withAlpha(BRAND.primary, 0.15),
+                        borderColor: BRAND.primary,
+                        borderWidth: 2,
+                        pointBackgroundColor: BRAND.primary,
+                        pointBorderColor: '#fff',
+                        pointHoverBackgroundColor: '#fff',
+                        pointHoverBorderColor: BRAND.primary
+                    }]
+                },
+                options: {
+                    scales: { r: { beginAtZero: true, max: 100 } },
+                    plugins: { title: { display: true, text: 'Business Fundamentals' } }
+                }
+            };
+            createChartFromConfig('businessFundamentalsChart', fundamentalsConfig);
+            
+            // 6. Success Factors Pie Chart
+            const factorsConfig = {
+                type: 'pie',
+                data: {
+                    labels: ['Revenue Growth', 'Market Size', 'Team Strength', 'Competition', 'Funding Efficiency'],
+                    datasets: [{
+                        data: [25, 20, 18, 15, 12],
+                        backgroundColor: CATEGORICAL.slice(0, 5),
+                        borderWidth: 1
+                    }]
+                },
+                options: {
+                    plugins: { title: { display: true, text: 'Key Success Factors' } }
+                }
+            };
+            createChartFromConfig('featureContributionChart', factorsConfig);
+            
+            // 7. Risk-Return Scatter Plot
+            const risk_score = 100 - attractiveness_score;
+            const return_score = success_prob;
+            
+            // Generate some peer data for context
+            const peer_data = [];
+            for (let i = 0; i < 12; i++) {
+                peer_data.push({
+                    x: 20 + Math.random() * 60,
+                    y: 30 + Math.random() * 60
+                });
+            }
+            
+            const riskReturnConfig = {
+                type: 'scatter',
+                data: {
+                    datasets: [
+                        {
+                            label: 'Industry Peers',
+                            data: peer_data,
+                            backgroundColor: withAlpha(BRAND.neutralDark, 0.4),
+                            borderColor: withAlpha(BRAND.neutralDark, 0.7),
+                            pointRadius: 5
+                        },
+                        {
+                            label: 'This Deal',
+                            data: [{ x: risk_score, y: return_score }],
+                            backgroundColor: withAlpha(BRAND.primary, 0.9),
+                            borderColor: BRAND.primary,
+                            pointRadius: 12,
+                            pointStyle: 'star'
+                        }
+                    ]
+                },
+                options: {
+                    scales: {
+                        x: { title: { display: true, text: 'Risk Score' } },
+                        y: { title: { display: true, text: 'Expected Return Score' } }
+                    },
+                    plugins: { title: { display: true, text: 'Risk-Return Positioning' } }
+                }
+            };
+            createChartFromConfig('riskReturnChart', riskReturnConfig);
+        }
+        
+        function createChartFromConfig(canvasId, chartConfig) {
+            const ctx = document.getElementById(canvasId);
+            if (!ctx) return;
+            
+            // Destroy existing chart if any
+            if (window[canvasId + '_instance']) {
+                window[canvasId + '_instance'].destroy();
+            }
+            
+            // Create new chart
+            window[canvasId + '_instance'] = new Chart(ctx, {
+                type: chartConfig.type,
+                data: chartConfig.data,
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    ...chartConfig.options
+                }
+            });
+        }
+        
+        // Add event listener for DOM content loaded
+        document.addEventListener('DOMContentLoaded', function() {
+            // Initialize tab switching for analysis modal
+            const tabTriggerList = [].slice.call(document.querySelectorAll('#analysisChartTabs button[data-bs-toggle="tab"]'));
+            tabTriggerList.forEach(function (tabTriggerEl) {
+                const tabTrigger = new bootstrap.Tab(tabTriggerEl);
+            });
+        });
+        
+        // Format number for display
+        function formatNumber(num) {
+            if (num >= 1e9) return (num / 1e9).toFixed(1) + 'B';
+            if (num >= 1e6) return (num / 1e6).toFixed(1) + 'M';
+            if (num >= 1e3) return (num / 1e3).toFixed(1) + 'K';
+            return num.toFixed(0);
+        }
+        
+        function loadSingleCompany(companyId) {
+            // Close comparison modal if open
+            const modal = bootstrap.Modal.getInstance(document.getElementById('comparisonModal'));
+            if (modal) modal.hide();
+            // Analyze selected company
+            analyzeCompany(companyId);
+        }
+        
+        // Add event listener for companies tab activation
+        document.addEventListener('DOMContentLoaded', function() {
+            const companiesTab = document.getElementById('companies-tab');
+            companiesTab.addEventListener('shown.bs.tab', function() {
+                // Preserve current filters when switching back to this tab
+                loadCompanies(1, currentFilters);
+            });
+        });
+        
+        // Initialize page
+        document.addEventListener('DOMContentLoaded', function() {
+            // Don't load companies automatically since Home tab is active by default
+            // Companies will load when the Evaluate Companies tab is clicked
+            
+            // Debug: Log all tabs found
+            const allTabs = document.querySelectorAll('#mainTabs .nav-link');
+           
+            console.log('DEBUG: Tabs found:', allTabs.length);
+            allTabs.forEach((tab, index) => {
+                console.log(`Tab ${index + 1}:`, tab.textContent.trim(), 'ID:', tab.id);
+            });
+            
+            // Add tier filter event listener
+            const tierFilter = document.getElementById('tierFilter');
+            if (tierFilter) {
+                tierFilter.addEventListener('change', function() {
+                    // Trigger server-side reload including tier filter so pagination reflects it
+                    searchCompanies();
+                });
+            }
+
+            // Auto-run search on filter changes for snappier UX
+            const industrySelect = document.getElementById('industryFilter');
+            const locationSelect = document.getElementById('locationFilter');
+            if (industrySelect) industrySelect.addEventListener('change', () => searchCompanies());
+            if (locationSelect) locationSelect.addEventListener('change', () => searchCompanies());
+        });
+    </script>
+    
+    <!-- Company Comparison Modal -->
+    <div class="modal fade" id="comparisonModal" tabindex="-1">
+        <div class="modal-dialog modal-xl">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title"><i class="fas fa-balance-scale"></i> Company Comparison</h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+                </div>
+                <div class="modal-body">
+                    <div id="comparisonContent">
+                        <!-- Comparison content will be loaded here -->
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Company Analysis Modal -->
+    <div class="modal fade" id="analysisModal" tabindex="-1">
+        <div class="modal-dialog modal-xl">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title">
+                        <i class="fas fa-chart-line"></i> 
+                        <span id="analysisCompanyName">Company Analysis</span>
+                    </h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+                </div>
+                <div class="modal-body">
+                    <div id="analysisLoading" class="text-center py-5">
+                        <div class="spinner-border text-primary" role="status">
+                            <span class="visually-hidden">Loading analysis...</span>
+                        </div>
+                        <p class="mt-3">Analyzing company data...</p>
+                    </div>
+                    <div id="analysisContent" style="display: none;">
+                        <!-- Analysis content will be loaded here -->
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</body>
+</html>
+<!-- UI Version Footer for diagnostics -->
+<div style="position: fixed; bottom: 6px; right: 10px; background: rgba(0,0,0,0.6); color: #fff; padding: 4px 8px; border-radius: 6px; font-size: 11px; z-index: 9999;">
+    UI v2 • {{ template_version or 'no-version' }} • 2025-09-22 22:26
+    <span style="opacity:0.6"> | Tier System ACTIVE</span>
+    <span style="opacity:0.6"> | CacheBust: 2025-09-22</span>
+    <span style="opacity:0.6"> | Build: A</span>
+  
+    <!-- If you see this, the latest template is loaded. -->
+</div>

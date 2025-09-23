@@ -1,0 +1,57 @@
+﻿# Python
+__pycache__/
+*.py[cod]
+*.pyo
+*.pyd
+*.so
+*.dll
+
+# Virtual environments
+venv/
+.venv/
+env/
+ENV/
+env.bak/
+
+# Editors / tooling
+.vscode/
+.idea/
+.vs/
+*.code-workspace
+
+# Tests / tooling caches
+.pytest_cache/
+.coverage
+htmlcov/
+.mypy_cache/
+.pyre/
+.pytype/
+
+# Notebooks
+.ipynb_checkpoints/
+
+# Logs and debug
+*.log
+debug_log.txt
+flask_app/debug_log.txt
+
+# Local data / downloads / caches
+data/
+datasets/
+downloads/
+cache/
+.flask_cache/
+flask_app/kaggle_data/
+
+# Secrets / environment
+.env
+.env.* 
+*.env
+**/kaggle.json
+
+# Node (just in case)
+node_modules/
+
+# Build artifacts
+dist/
+build/
