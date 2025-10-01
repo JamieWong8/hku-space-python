@@ -21,449 +21,203 @@
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
     <!-- Font Awesome -->
     <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" rel="stylesheet">
+    <!-- Google Fonts - Inter -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
     <!-- Chart.js with all chart types support -->
     <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.js"></script>
     <!-- Chart.js Data Labels plugin for improved readability -->
     <script src="https://cdn.jsdelivr.net/npm/chartjs-plugin-datalabels@2"></script>
-    <!-- Modular dashboard CSS -->
-    <link rel="stylesheet" href="{{ url_for('static', filename='css/dashboard.css') }}">
-    <!-- Evaluate Companies modular CSS -->
-    <link rel="stylesheet" href="{{ url_for('static', filename='css/evaluate.css') }}">
-    <!-- Home landing modular CSS -->
-    <link rel="stylesheet" href="{{ url_for('static', filename='css/home.css') }}">
+    
+    <!-- Modern CSS Architecture -->
+    <!-- Design System: Variables, tokens, utilities -->
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/design-system.css') }}?v=2025.7">
+    <!-- Components: Cards, buttons, forms, badges -->
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/components.css') }}?v=2025.7">
+    <!-- Dashboard: Analysis modal, charts, KPIs -->
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/dashboard.css') }}?v=2025.7">
+    <!-- Evaluate: Company cards, filters, pagination -->
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/evaluate.css') }}?v=2025.7">
+    <!-- Home: Hero, features, mission -->
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/home.css') }}?v=2025.7">
     
     <style>
-        /* Deal Scout Branding */
-        :root {
-            /* Core brand palette tuned to logo */
-            --primary-color: #1f2a44;   /* Deep navy */
-            --secondary-color: #2f80ed; /* Brand blue */
-            --accent-color: #10b981;    /* Teal accent */
-            --gradient-start: #1f2a44;
-            --gradient-end: #2f80ed;
-
-            --success-color: #27ae60;  /* Invest */
-            --warning-color: #f6c000;  /* Monitor */
-            --danger-color: #e74c3c;   /* Avoid */
-            --light-bg: #f8f9fa;
+        /* === GLOBAL OVERRIDES & PAGE-SPECIFIC STYLES === */
+        body {
+            background: linear-gradient(135deg, var(--brand-navy) 0%, var(--brand-blue) 100%);
+            min-height: 100vh;
+            font-family: var(--font-family-base);
+            transition: background var(--transition-base);
         }
         
-        body {
-            background: linear-gradient(135deg, var(--gradient-start) 0%, var(--gradient-end) 100%);
-            min-height: 100vh;
-            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+        /* Dark mode body gradient */
+        [data-theme="dark"] body {
+            background: linear-gradient(135deg, #0a0f1e 0%, #1a1f35 100%);
         }
         
         .main-container {
-            background: white;
-            border-radius: 20px;
-            box-shadow: 0 20px 40px rgba(0,0,0,0.1);
-            margin: 20px auto;
+            background: var(--surface-base);
+            border-radius: var(--radius-xl);
+            box-shadow: var(--shadow-2xl);
+            margin: var(--spacing-5) auto;
             max-width: 1400px;
+            animation: fadeInUp var(--transition-base);
+            transition: background var(--transition-base);
         }
         
-        .header-section { background: linear-gradient(135deg, var(--gradient-start) 0%, var(--gradient-end) 100%); color: white; padding: 0; border-radius: 20px 20px 0 0; text-align: center; }
+        .header-section {
+            background: linear-gradient(135deg, var(--brand-navy) 0%, var(--brand-blue) 100%);
+            color: var(--text-inverse);
+            padding: 0;
+            border-radius: var(--radius-xl) var(--radius-xl) 0 0;
+            text-align: center;
+            transition: background var(--transition-base);
+        }
+        
+        /* Dark mode header gradient */
+        [data-theme="dark"] .header-section {
+            background: linear-gradient(135deg, #0f1729 0%, #1e3a5f 100%);
+        }
 
-        /* Brand logo: more visible, responsive, flows with header */
+        /* Brand logo styling */
         .brand-logo {
             height: 160px;
             max-width: 100%;
             object-fit: contain;
-            filter: drop-shadow(0 2px 6px rgba(0,0,0,0.15));
+            filter: drop-shadow(0 2px 8px rgba(0,0,0,0.2));
+            transition: transform var(--transition-base);
         }
         
-        .feature-icon {
-            font-size: 2rem;
-            margin-bottom: 1rem;
-            color: var(--secondary-color);
+        .brand-logo:hover {
+            transform: scale(1.02);
         }
         
-        .card {
-            border: none;
-            border-radius: 15px;
-            box-shadow: 0 5px 15px rgba(0,0,0,0.08);
-            transition: transform 0.3s ease, box-shadow 0.3s ease;
-        }
-        
-        .card:hover {
-            transform: translateY(-5px);
-            box-shadow: 0 10px 25px rgba(0,0,0,0.15);
-        }
-        
-        .form-control, .form-select {
-            border-radius: 10px;
-            border: 2px solid #e9ecef;
-            padding: 12px 15px;
-            transition: border-color 0.3s ease;
-        }
-        
-        .form-control:focus, .form-select:focus {
-            border-color: var(--secondary-color);
-            box-shadow: 0 0 0 0.2rem rgba(52, 152, 219, 0.25);
-        }
-        
-        .btn-primary {
-            background: linear-gradient(135deg, var(--secondary-color) 0%, #1e6fd4 100%);
-            border: none;
-            border-radius: 10px;
-            padding: 12px 30px;
-            font-weight: 600;
-            transition: all 0.3s ease;
-        }
-        
-        .btn-primary:hover {
-            transform: translateY(-2px);
-            box-shadow: 0 5px 15px rgba(52, 152, 219, 0.4);
-        }
-        
-        .results-container {
-            display: none;
-            margin-top: 2rem;
-        }
-        
-        .score-display {
-            font-size: 3rem;
-            font-weight: bold;
-            text-align: center;
-            padding: 2rem;
-            border-radius: 15px;
-            margin-bottom: 1rem;
-        }
-        
-        .score-excellent { background: linear-gradient(135deg, #27ae60, #2ecc71); color: white; }
-        .score-good { background: linear-gradient(135deg, #f39c12, #e67e22); color: white; }
-        .score-moderate { background: linear-gradient(135deg, #e67e22, #d35400); color: white; }
-        .score-poor { background: linear-gradient(135deg, #e74c3c, #c0392b); color: white; }
-        
-        .metric-card {
-            text-align: center;
-            padding: 1.5rem;
-            border-radius: 15px;
-            background: var(--light-bg);
-            margin-bottom: 1rem;
-        }
-        
-        .metric-value {
-            font-size: 2rem;
-            font-weight: bold;
-            color: var(--primary-color);
-        }
-        
-        .metric-label {
-            color: #6c757d;
-            font-size: 0.9rem;
-            text-transform: uppercase;
-            letter-spacing: 1px;
-        }
-        
-        .insight-item {
-            background: #f8f9fa;
-            border-left: 4px solid var(--secondary-color);
-            padding: 1rem 1.5rem;
-            margin-bottom: 1rem;
-            border-radius: 0 10px 10px 0;
-        }
-        
-        .loading-spinner {
-            display: none;
-            text-align: center;
-            padding: 2rem;
-        }
-        
-        
-        .visualization-container {
-            text-align: center;
-            margin-top: 2rem;
-        }
-        
-        .nav-pills .nav-link {
-            color: var(--primary-color);
-            background: rgba(31, 42, 68, 0.06);
-            border: 1px solid rgba(31, 42, 68, 0.12);
-        }
-        .nav-pills .nav-link:hover {
-            color: var(--primary-color);
-            background: rgba(31, 42, 68, 0.12);
-            border-color: rgba(31, 42, 68, 0.2);
-        }
-        .nav-pills .nav-link:focus-visible {
-            outline: 2px solid var(--secondary-color);
-            outline-offset: 2px;
-        }
-        .nav-pills .nav-link.active {
-            color: #ffffff;
-            background-color: var(--secondary-color);
-            border-color: var(--secondary-color);
-            box-shadow: 0 6px 18px rgba(47, 128, 237, 0.35);
-        }
-        
-        .company-card {
-            cursor: pointer;
-            transition: all 0.3s ease;
-            border: 1px solid #dee2e6;
-            margin-bottom: 1rem;
-        }
-        
-        .company-card:hover {
-            border-color: var(--secondary-color);
-            transform: translateY(-2px);
-            box-shadow: 0 4px 8px rgba(0,0,0,0.1);
-        }
-        
-        /* Three-tier visual accents */
-        .company-tier-invest { border-left: 4px solid var(--success-color); }
-        .company-tier-monitor { border-left: 4px solid var(--warning-color); }
-        .company-tier-avoid { border-left: 4px solid var(--danger-color); }
-        
-        .company-metrics {
-            font-size: 0.9rem;
-            color: #6c757d;
-        }
-        
-        .company-funding {
-            font-weight: bold;
-            color: var(--primary-color);
-        }
-        
-        .pagination .page-link {
-            color: var(--primary-color);
-        }
-        
-        .pagination .page-item.active .page-link {
-            background-color: var(--secondary-color);
-            border-color: var(--secondary-color);
-        }
-        
+        /* Mobile responsive adjustments */
         @media (max-width: 768px) {
             .main-container {
-                margin: 10px;
-                border-radius: 15px;
+                margin: var(--spacing-2);
+                border-radius: var(--radius-lg);
             }
             
             .header-section {
-                padding: 1.5rem;
-                border-radius: 15px 15px 0 0;
+                padding: var(--spacing-4);
+                border-radius: var(--radius-lg) var(--radius-lg) 0 0;
             }
 
-            /* Keep the logo proportionally large but not overwhelming on small screens */
             .brand-logo {
                 height: 120px;
             }
-            
-            .score-display {
-                font-size: 2rem;
-                padding: 1.5rem;
-            }
         }
         
-        .form-range {
-            height: 6px;
+        /* Analysis Modal Enhancements */
+        #analysisModal .modal-dialog {
+            max-width: 95vw;
         }
-        
-        .range-labels {
-            display: flex;
-            justify-content: space-between;
-            font-size: 0.8rem;
-            color: #6c757d;
-            margin-top: 0.5rem;
-        }
-        
-        /* Enhanced Analysis Modal Styles */
-        #analysisModal .modal-dialog { max-width: 95vw; }
         
         #analysisModal .tab-content {
             min-height: 500px;
         }
         
-        #analysisModal .card {
-            box-shadow: 0 0.125rem 0.25rem rgba(0, 0, 0, 0.075);
-            border: 1px solid rgba(0, 0, 0, 0.125);
-            margin-bottom: 1rem;
+        #analysisModal canvas {
+            max-height: 520px;
         }
         
-        #analysisModal .card-header {
-            background-color: #f8f9fa;
-            border-bottom: 1px solid rgba(0, 0, 0, 0.125);
-            font-weight: 600;
-        }
-        
-        #analysisModal canvas { max-height: 520px; }
-        
-        #analysisModal .nav-tabs .nav-link {
-            color: #495057;
-            border: 1px solid transparent;
-        }
-        
-        #analysisModal .nav-tabs .nav-link.active {
-            color: #007bff;
-            background-color: #fff;
-            border-color: #dee2e6 #dee2e6 #fff;
-            border-bottom-color: transparent;
-        }
-        
-        #analysisModal .badge {
-            font-size: 0.75em;
-        }
-        
-        #riskFactorsList .badge {
-            margin-right: 0.5rem;
-        }
-        
-        #analysisModal .summary-cards .card {
-            transition: transform 0.2s ease-in-out;
-        }
-        
-        #analysisModal .summary-cards .card:hover {
-            transform: translateY(-2px);
-        }
-        
-        /* Investment Commentary Styles */
+        /* Investment Commentary */
         .investment-commentary .card {
-            transition: all 0.3s ease;
+            transition: all var(--transition-base);
+            background: var(--surface-base);
+            border: 1px solid var(--border-light);
         }
         
         .investment-commentary .card:hover {
             transform: translateY(-2px);
-            box-shadow: 0 4px 12px rgba(0,0,0,0.15);
+            box-shadow: var(--shadow-lg);
+        }
+        
+        .investment-commentary .card-body {
+            background: var(--surface-base);
         }
         
         .commentary-icon {
             min-width: 40px;
             text-align: center;
+            font-size: var(--font-size-2xl);
         }
         
         .commentary-text {
-            line-height: 1.6;
+            line-height: var(--line-height-relaxed);
+            color: var(--text-primary);
+        }
+        
+        .commentary-text p {
+            color: var(--text-primary);
         }
         
         .investment-commentary .border-success {
-            border-left: 4px solid #28a745 !important;
+            border-left: 4px solid var(--color-success) !important;
         }
         
         .investment-commentary .border-danger {
-            border-left: 4px solid #dc3545 !important;
+            border-left: 4px solid var(--color-danger) !important;
         }
         
         .investment-commentary .border-warning {
-            border-left: 4px solid #ffc107 !important;
+            border-left: 4px solid var(--color-warning) !important;
         }
         
         .investment-commentary .border-primary {
-            border-left: 4px solid #007bff !important;
+            border-left: 4px solid var(--color-primary) !important;
         }
         
-        /* About Page Methodology Styles */
-        .methodology-section {
-            background: linear-gradient(135deg, #f8f9fa 0%, #e9ecef 100%);
-            border-radius: 15px;
-            padding: 2rem;
-            margin: 1.5rem 0;
+        /* === DARK MODE MODAL STYLES === */
+        [data-theme="dark"] .modal-content {
+            background: var(--surface-base);
+            color: var(--text-primary);
+            border: 1px solid var(--border-medium);
         }
         
-        .score-component {
-            text-align: center;
-            padding: 1rem;
-            margin-bottom: 1rem;
+        [data-theme="dark"] .modal-header {
+            background: var(--surface-raised);
+            border-bottom: 1px solid var(--border-medium);
+            color: var(--text-primary);
         }
         
-        .score-weight {
-            font-size: 1.5rem;
-            font-weight: bold;
-            color: var(--primary-color);
-            margin-bottom: 0.5rem;
+        [data-theme="dark"] .modal-body {
+            background: var(--surface-base);
+            color: var(--text-primary);
         }
         
-        .score-label {
-            margin-bottom: 0.5rem;
-            color: #333;
+        [data-theme="dark"] .modal-footer {
+            background: var(--surface-raised);
+            border-top: 1px solid var(--border-medium);
         }
         
-        .score-component small {
-            color: #6c757d;
-            line-height: 1.3;
+        [data-theme="dark"] .btn-close {
+            filter: invert(1) grayscale(100%) brightness(200%);
         }
         
-        .score-tiers {
-            margin-top: 2rem;
-            padding-top: 1.5rem;
-            border-top: 2px solid #dee2e6;
+        /* Dark mode for investment commentary cards */
+        [data-theme="dark"] .investment-commentary .card {
+            background: var(--surface-raised);
+            border-color: rgba(255, 255, 255, 0.1);
         }
         
-        .tier-card {
-            text-align: center;
-            padding: 1rem;
-            border-radius: 10px;
-            margin-bottom: 1rem;
-            transition: transform 0.2s ease;
+        [data-theme="dark"] .investment-commentary .card-body {
+            background: var(--surface-raised);
+            color: var(--text-primary);
         }
         
-        .tier-card:hover {
-            transform: translateY(-2px);
+        [data-theme="dark"] .commentary-text {
+            color: var(--text-primary);
         }
         
-        .tier-invest { background: linear-gradient(135deg, #27ae60, #2ecc71); color: white; }
-        .tier-monitor { background: linear-gradient(135deg, #f6c000, #ffd54f); color: #1f2a44; }
-        .tier-avoid { background: linear-gradient(135deg, #e74c3c, #c0392b); color: white; }
-        
-        .tier-score {
-            font-size: 1.2rem;
-            font-weight: bold;
-            margin-bottom: 0.3rem;
+        [data-theme="dark"] .commentary-text p {
+            color: var(--text-primary);
         }
         
-        .tier-name {
-            font-weight: 600;
-            margin-bottom: 0.3rem;
-        }
-        
-        .tier-desc {
-            font-size: 0.85rem;
-            opacity: 0.9;
-        }
-        
-        /* Enhanced metric cards for about page */
-        .metric-card {
-            transition: all 0.3s ease;
-        }
-        
-        .metric-card:hover {
-            transform: translateY(-3px);
-            box-shadow: 0 5px 15px rgba(0,0,0,0.1);
-        }
-
-        /* Ensure consistent heights for tier cards on Home section */
-        .score-tiers .tier-card {
-            min-height: 140px;
-            display: flex;
-            flex-direction: column;
-            justify-content: center;
-        }
-
-        /* Soften and align tier card styles with brand */
-        .tier-invest { background: linear-gradient(135deg, var(--accent-color), #34d399); }
-        .tier-monitor { background: linear-gradient(135deg, #f6c000, #ffd54f); }
-        .tier-avoid { background: linear-gradient(135deg, #e74c3c, #c0392b); }
-
-        /* Company cards: subtle brand border hover */
-        .company-card:hover {
-            box-shadow: 0 8px 20px rgba(31,42,68,0.18);
-        }
-
-        /* Mission Statement panel on Home */
-        .mission-statement {
-            background: rgba(47, 128, 237, 0.08);
-            border: 1px solid rgba(47, 128, 237, 0.2);
-            color: var(--primary-color);
-            border-radius: 12px;
-        }
-        .mission-statement h5 {
-            color: var(--secondary-color);
-            font-weight: 700;
-        }
-        .mission-statement p {
-            margin: 0;
-            font-size: 1.05rem;
-            line-height: 1.6;
+        [data-theme="dark"] .investment-commentary .card:hover {
+            border-color: rgba(255, 255, 255, 0.15);
         }
     </style>
 </head>
@@ -690,6 +444,45 @@
     
     <!-- Custom JavaScript -->
     <script>
+        // ===== DARK MODE TOGGLE =====
+        // Initialize theme from localStorage or system preference
+        (function() {
+            const savedTheme = localStorage.getItem('theme');
+            const prefersDark = window.matchMedia('(prefers-color-scheme: dark)').matches;
+            const initialTheme = savedTheme || (prefersDark ? 'dark' : 'light');
+            
+            document.documentElement.setAttribute('data-theme', initialTheme);
+        })();
+
+        // Dark mode toggle handler
+        document.addEventListener('DOMContentLoaded', function() {
+            const darkModeToggle = document.getElementById('darkModeToggle');
+            
+            if (darkModeToggle) {
+                darkModeToggle.addEventListener('click', function() {
+                    const currentTheme = document.documentElement.getAttribute('data-theme');
+                    const newTheme = currentTheme === 'dark' ? 'light' : 'dark';
+                    
+                    document.documentElement.setAttribute('data-theme', newTheme);
+                    localStorage.setItem('theme', newTheme);
+                    
+                    // Optional: Add animation feedback
+                    this.style.transform = 'rotate(360deg)';
+                    setTimeout(() => {
+                        this.style.transform = '';
+                    }, 300);
+                });
+            }
+            
+            // Listen for system theme changes
+            window.matchMedia('(prefers-color-scheme: dark)').addEventListener('change', (e) => {
+                if (!localStorage.getItem('theme')) {
+                    const newTheme = e.matches ? 'dark' : 'light';
+                    document.documentElement.setAttribute('data-theme', newTheme);
+                }
+            });
+        });
+
         // Register Chart.js DataLabels plugin if available
         document.addEventListener('DOMContentLoaded', function() {
             try {
@@ -2008,6 +1801,17 @@
             </div>
         </div>
     </div>
+
+    <!-- Dark Mode Toggle -->
+    <button 
+        id="darkModeToggle" 
+        class="dark-mode-toggle" 
+        aria-label="Toggle dark mode"
+        title="Toggle dark mode"
+    >
+        <i class="fas fa-sun icon-sun" aria-hidden="true"></i>
+        <i class="fas fa-moon icon-moon" aria-hidden="true"></i>
+    </button>
 </body>
 </html>
 <!-- UI Version Footer for diagnostics -->
