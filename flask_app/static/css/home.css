@@ -1,0 +1,66 @@
+/* Home / Landing Page Styles */
+:root {
+  --ds-navy: #1f2a44;
+  --ds-blue: #2f80ed;
+  --ds-green: #10b981;
+  --ds-yellow: #f6c000;
+  --ds-red: #e74c3c;
+  --ds-surface: #ffffff;
+  --ds-muted: #6b7280;
+  --ds-border: rgba(31, 42, 68, 0.12);
+  --ds-shadow: 0 12px 28px rgba(31, 42, 68, 0.10);
+}
+
+.sticky-nav { position: sticky; top: 0; z-index: 50; background: #fff; border-bottom: 1px solid var(--ds-border); box-shadow: 0 4px 14px rgba(0,0,0,0.04); }
+
+.hero-banner { color: #fff; text-align: center; padding: 1.25rem 0.75rem 1.1rem; }
+.hero-title { font-size: clamp(1.35rem, 2.5vw, 1.75rem); font-weight: 800; letter-spacing: .2px; margin: 0.35rem 0 0.25rem; }
+.hero-subtitle { font-size: clamp(.95rem, 1.6vw, 1.05rem); opacity: .95; margin-bottom: .5rem; }
+.hero-cta { border-radius: 12px; padding: .6rem 1.1rem; font-weight: 700; box-shadow: 0 10px 24px rgba(47,128,237,.35); }
+.hero-cta:hover { transform: translateY(-1px); }
+
+.hero-icons { display: grid; grid-template-columns: repeat(4, minmax(0,1fr)); gap: .5rem; max-width: 1000px; margin: .4rem auto 0; }
+.hero-icon { display:flex; flex-direction:column; align-items:center; gap:.25rem; padding: .25rem 0; }
+.hero-icon i { font-size: 1.35rem; color: #cfe2ff; }
+.hero-icon h6 { font-weight: 700; margin: 0; font-size: .95rem; color: #eef3ff; }
+.hero-icon small { color: #e0e7ff; opacity: .95; }
+
+.features-grid { display:grid; gap: .75rem; grid-template-columns: repeat(3, minmax(0,1fr)); }
+.feature-box { display:flex; gap:.9rem; align-items:flex-start; background: #fff; border: 1px solid var(--ds-border); border-radius: 14px; padding: 0.9rem 1rem; box-shadow: var(--ds-shadow); transition: transform .18s ease, box-shadow .18s ease; }
+.feature-box:hover { transform: translateY(-3px); box-shadow: 0 16px 32px rgba(0,0,0,.10); }
+.feature-box .icon { width: 44px; height: 44px; border-radius: 10px; display:flex; align-items:center; justify-content:center; color:#fff; font-size: 1.2rem; flex: 0 0 auto; }
+.feature-box .content h5 { font-size: 1.05rem; margin: 0 0 .2rem; color: var(--ds-navy); font-weight: 800; }
+.feature-box .content p { margin: 0; color: var(--ds-muted); font-size: .92rem; }
+.icon-ml { background: linear-gradient(135deg, var(--ds-green), #34d399); }
+.icon-real { background: linear-gradient(135deg, var(--ds-blue), #1e6fd4); }
+.icon-risk { background: linear-gradient(135deg, #8b5cf6, #6366f1); }
+.icon-insights { background: linear-gradient(135deg, #f59e0b, #f97316); }
+
+.tiers-grid .tier-card { border-radius: 14px; padding: 1rem; min-height: 160px; display:flex; flex-direction:column; align-items:center; justify-content:center; gap:.25rem; cursor: pointer; transition: transform .18s ease, box-shadow .18s ease, filter .2s ease; border: none; box-shadow: 0 10px 20px rgba(0,0,0,.05); }
+.tiers-grid .tier-card:hover { transform: translateY(-4px); box-shadow: 0 18px 34px rgba(0,0,0,.12); filter: saturate(1.08); }
+.tiers-grid .tier-card .tier-score { font-size: 1.1rem; letter-spacing:.2px; }
+.tiers-grid .tier-card .tier-name { font-size: 1.02rem; font-weight: 700; }
+.tiers-grid .tier-card .tier-desc { font-size: .92rem; }
+.tiers-grid .tier-card:focus-visible { outline: 3px solid #fff; outline-offset: 2px; }
+
+.mission-panel { background: linear-gradient(180deg, #f9fbff, #f5f7ff); border:1px solid var(--ds-border); border-radius: 14px; box-shadow: var(--ds-shadow); display:flex; gap:.9rem; align-items:flex-start; padding: 1rem 1.1rem; }
+.mission-icon { width: 48px; height:48px; border-radius: 12px; background: linear-gradient(135deg, #e6f0ff, #dbeafe); display:flex; align-items:center; justify-content:center; color: var(--ds-blue); font-size: 1.4rem; flex:0 0 auto; }
+.mission-body h5 { margin:.1rem 0 .35rem; color: var(--ds-navy); font-weight: 800; font-size: 1.05rem; }
+.mission-body p { margin:0; color: var(--ds-navy); font-size: 1rem; line-height:1.65; }
+
+.main-container .card-body { font-size: 1.02rem; }
+.main-container p { line-height: 1.65; }
+
+/* Reveal animations */
+.reveal-up { opacity: 0; transform: translateY(16px); transition: opacity .5s ease, transform .5s ease; }
+.reveal-in { opacity: 1; transform: translateY(0); }
+
+/* Responsive tweaks */
+@media (max-width: 992px) {
+  .features-grid { grid-template-columns: 1fr; }
+}
+
+/* Respect reduced motion */
+@media (prefers-reduced-motion: reduce) {
+  * { animation: none !important; transition: none !important; }
+}

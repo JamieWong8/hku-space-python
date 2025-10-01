@@ -1,0 +1,40 @@
+{
+  // Auto-forward and auto-open forwarded ports without prompting
+  "remote.autoForwardPorts": true,
+  "remote.restoreForwardedPorts": true,
+  "remote.portsAttributes": {
+    "*": {
+      "onAutoForward": "openBrowser", // open browser automatically
+      "label": "Deal Scout Dev Server",
+      "elevateIfNeeded": true           // auto-elevate for privileged ports
+    }
+  },
+
+      "terminal.integrated.shellIntegration.enabled": true,
+      "terminal.integrated.shellIntegration.decorationsEnabled": "both",
+      "terminal.integrated.shellIntegration.showCommandGuide": true,
+      "terminal.integrated.stickyScroll.enabled": true,
+  "terminal.integrated.defaultProfile.windows": "Windows PowerShell",
+      "terminal.integrated.suggest.enabled": true,
+      "terminal.integrated.suggest.runOnEnter": "never",
+  "remote.localPortHost": "allInterfaces",
+
+  // Enable agent mode and auto-approve tools/terminal commands from chat
+  "chat.agent.enabled": true,
+  // WARNING: The following two settings disable confirmations for all tools & terminal commands
+  // Use with caution and only if you understand the security implications
+  "chat.tools.autoApprove": true,
+  "chat.tools.global.autoApprove": true,
+  // Fine-grained terminal auto-approve rules (approve any command line)
+  "chat.tools.terminal.autoApprove": {
+    "/^.*$/": { "approve": true, "matchCommandLine": true }
+  },
+
+  // Reduce confirmation prompts to streamline dev flow
+  "terminal.integrated.confirmOnExit": "never",
+  "window.confirmBeforeClose": "never",
+
+  // Minimize Workspace Trust prompts while keeping feature enabled
+  "security.workspace.trust.untrustedFiles": "open",
+  "security.workspace.trust.banner": "never"
+}

@@ -1,248 +1,135 @@
-# 🚀 GitHub Deployment Guide - Startup Deal Evaluator
+git tag -a v1.0 -m "Version 1.0: Initial release with full ML pipeline"
+git push origin v1.0
+# 🚀 GitHub Deployment Guide – Deal Scout
 
-This guide will walk you through deploying your Startup Deal Evaluator to GitHub step by step.
+This guide walks through publishing the Deal Scout repository, verifying the documentation, and preparing a shareable portfolio artifact.
 
 ## 📋 Prerequisites
 
-### 1. Install Git
-Since Git is not currently installed on your system, you'll need to install it first:
+1. **Git for Windows**
+   - Download from <https://git-scm.com/download/win> (64-bit). Accept defaults.
+   - Verify installation:
+     ```powershell
+     git --version
+     ```
 
-1. **Download Git for Windows**:
-   - Visit: https://git-scm.com/download/win
-   - Download the latest version (64-bit recommended)
-   - Run the installer with default settings
+2. **GitHub account**
+   - Create or sign in at <https://github.com/join>.
+   - Confirm email to unlock repository creation.
 
-2. **Verify Installation**:
+3. **One-time Git identity**
    ```powershell
-   git --version
+   git config --global user.name "Your Name"
+   git config --global user.email "you@example.com"
    ```
-   You should see something like `git version 2.42.0.windows.1`
 
-### 2. Create GitHub Account
-If you don't have one already:
-- Visit: https://github.com/join
-- Create a free account
-- Verify your email address
+## 🔧 Repository Setup (CLI)
 
-### 3. Configure Git (First Time Setup)
-```powershell
-git config --global user.name "Your Name"
-git config --global user.email "your.email@example.com"
-```
+Assumes workspace root: `c:\Users\jamie\OneDrive\Documents\Deal Scout` and project sources under `Deal-Scout/` + `flask_app/`.
 
-## 🔧 Repository Setup
+1. **Initialize Git**
+   ```powershell
+   cd "c:\Users\jamie\OneDrive\Documents\Deal Scout"
+   git init
+   git add .
+   git commit -m "Initial commit: Deal Scout web platform"
+   ```
 
-### Step 1: Initialize Local Repository
-Open PowerShell in your project folder and run:
+2. **Create GitHub repository**
+   - Navigate to <https://github.com/new>.
+   - Suggested name: `deal-scout`.
+   - Leave README/.gitignore unchecked (already present locally).
 
-```powershell
-# Navigate to your project folder (if not already there)
-cd "c:\Users\jamie\OneDrive\Documents\New folder"
+3. **Connect & push**
+   ```powershell
+   git remote add origin https://github.com/USERNAME/deal-scout.git
+   git branch -M main
+   git push -u origin main
+   ```
 
-# Initialize Git repository
-git init
+## 🌟 Using GitHub Desktop (Optional)
 
-# Add all files to staging
-git add .
+1. Install from <https://desktop.github.com/>.
+2. **Add local repo** → choose `c:\Users\jamie\OneDrive\Documents\Deal Scout`.
+3. Click **Publish repository**, select `deal-scout`, configure visibility, and publish.
 
-# Create initial commit
-git commit -m "Initial commit: Startup Deal Evaluator ML application"
-```
-
-### Step 2: Create GitHub Repository
-
-1. **Go to GitHub**:
-   - Visit: https://github.com/new
-   - Sign in to your account
-
-2. **Repository Settings**:
-   - **Repository name**: `startup-deal-evaluator`
-   - **Description**: `AI-powered startup investment analysis tool using machine learning`
-   - **Visibility**: Choose Public (recommended) or Private
-   - **Don't initialize** with README, .gitignore, or license (we already have these files)
-
-3. **Click "Create repository"**
-
-### Step 3: Connect Local to GitHub
-
-After creating the repository, GitHub will show you commands. Use these (replace `USERNAME` with your GitHub username):
-
-```powershell
-# Add GitHub repository as remote origin
-git remote add origin https://github.com/USERNAME/startup-deal-evaluator.git
-
-# Rename main branch (modern Git practice)
-git branch -M main
-
-# Push to GitHub
-git push -u origin main
-```
-
-## 🌟 Alternative: GitHub Desktop (Easier Option)
-
-If you prefer a visual interface:
-
-### 1. Install GitHub Desktop
-- Download from: https://desktop.github.com/
-- Install with default settings
-
-### 2. Add Repository
-1. Open GitHub Desktop
-2. Click "Add an Existing Repository from your hard drive"
-3. Choose your project folder: `c:\Users\jamie\OneDrive\Documents\New folder`
-4. Click "create a repository" if prompted
-
-### 3. Publish to GitHub
-1. Click "Publish repository" in GitHub Desktop
-2. Set name: `startup-deal-evaluator`
-3. Add description: `AI-powered startup investment analysis tool`
-4. Choose public/private
-5. Click "Publish Repository"
-
-## 📁 What Gets Uploaded
-
-Your repository will include:
+## 📁 Expected Repository Layout
 
 ```
-startup-deal-evaluator/
-├── 📊 startup_deal_evaluator.ipynb    # Main ML application
-├── 📖 README.md                       # Project overview
-├── 📋 requirements.txt                # Python dependencies
-├── ⚖️ LICENSE                         # MIT license
-├── 🚫 .gitignore                      # Git ignore rules
-├── 📚 docs/
-│   ├── user_guide.md                  # User documentation
-│   └── technical_specs.md             # Technical details
-├── 🚀 DEPLOYMENT_GUIDE.md             # This guide
-└── 📝 task 2.txt                      # Original requirements
+Deal Scout/
+├── README.md
+├── DOCUMENTATION_INDEX.md         # Complete documentation navigation
+├── OCTOBER_2025_UPDATES.md       # Latest updates (scoring, performance, UI)
+├── FIXES_SUMMARY.md              # Recent bug fixes
+├── flask_app/
+│   ├── app.py
+│   ├── model.py
+│   ├── run_web_app.ps1
+│   ├── requirements.txt
+│   ├── templates/
+│   └── static/
+├── Deal-Scout/                   # Legacy assets retained for reference
+├── docs/
+│   ├── project_summary.md
+│   ├── technical_specs.md
+│   └── user_guide.md
+├── DEPLOYMENT_GUIDE.md
+├── KAGGLE_INTEGRATION_GUIDE.md
+├── KAGGLEHUB_INTEGRATION_COMPLETE.md
+└── requirements.txt              # Workspace-level utilities
 ```
 
-## ✅ Verification Steps
+The `flask_app/` directory contains the live web application. `Deal-Scout/` houses historical notebooks and docs from earlier phases—keep for provenance or exclude via `.gitignore` if no longer needed.
 
-After deployment, verify everything worked:
+## ✅ Post-Push Verification
 
-1. **Visit Your Repository**:
-   - Go to: `https://github.com/USERNAME/startup-deal-evaluator`
-   - You should see all your files listed
+1. **Repository page** – all files appear with correct casing and folders.
+2. **Root README** – renders updated architecture overview with October 2025 tier thresholds (≥65% Invest, 50-64% Monitor, <50% Avoid).
+3. **Documentation Index** – check `DOCUMENTATION_INDEX.md` provides clear navigation to all docs.
+4. **October Updates** – verify `OCTOBER_2025_UPDATES.md` is accessible and properly formatted.
+5. **Documentation** – check `docs/project_summary.md`, `docs/technical_specs.md`, and `docs/user_guide.md` render correctly in-browser.
+6. **PowerShell scripts** – confirm `run_web_app.ps1` is tracked (no Windows line-ending issues).
+7. **Large files** – ensure no Kaggle datasets or `.model_cache/` artifacts were accidentally committed (should be ignored).
 
-2. **Check README Display**:
-   - The README.md should display automatically on the main page
-   - All badges and formatting should render correctly
+## 📦 Optional Enhancements
 
-3. **Test File Access**:
-   - Click on `startup_deal_evaluator.ipynb`
-   - GitHub should render the notebook with all cells visible
+- **GitHub Pages** – publish docs quickly:
+  1. Settings → Pages → Source: `main` / `/root`.
+  2. Add a simple `docs/site/index.html` (already present) to serve as landing page.
 
-4. **Verify Documentation**:
-   - Navigate to the `docs/` folder
-   - Check that user_guide.md and technical_specs.md are accessible
+- **Repository topics** – improve discoverability: `flask`, `machine-learning`, `investment-analytics`, `kagglehub`, `venture-capital`.
 
-## 🎯 Next Steps After Deployment
+- **Releases** – tag meaningful milestones:
+  ```powershell
+  git tag -a v1.0.0 -m "First production-ready Deal Scout release"
+  git push origin v1.0.0
+  ```
+  Then create GitHub release notes summarizing features.
 
-### 1. Enable GitHub Pages (Optional)
-Turn your documentation into a website:
-
-1. Go to repository **Settings** → **Pages**
-2. Source: **Deploy from a branch**
-3. Branch: **main** → **/ (root)**
-4. Click **Save**
-5. Your docs will be available at: `https://USERNAME.github.io/startup-deal-evaluator`
-
-### 2. Add Repository Topics
-Make your repo discoverable:
-
-1. Go to your repository main page
-2. Click the gear icon next to "About"
-3. Add topics: `machine-learning`, `startup-analysis`, `investment-tools`, `jupyter-notebook`, `python`, `random-forest`
-
-### 3. Create Releases
-Tag stable versions:
-
-```powershell
-# Create and push a tag for v1.0
-git tag -a v1.0 -m "Version 1.0: Initial release with full ML pipeline"
-git push origin v1.0
-```
-
-Then create a release on GitHub:
-- Go to **Releases** → **Create a new release**
-- Choose tag: **v1.0**
-- Release title: **"v1.0 - Initial Release"**
-- Describe the features and capabilities
-
-### 4. Enable Discussions (Optional)
-- Go to **Settings** → **Features** → **Discussions**
-- Enable discussions for user feedback and questions
-
-## 📧 Sharing Your Project
-
-Once deployed, you can share your project:
-
-- **Repository URL**: `https://github.com/USERNAME/startup-deal-evaluator`
-- **Raw Notebook**: Use GitHub's notebook viewer
-- **Documentation**: Link to specific docs in the `docs/` folder
-- **Live Demo**: Set up Binder or Colab for interactive demos
-
-### Binder Setup (Free Interactive Demo)
-Add this badge to your README to let others run your notebook online:
-
-```markdown
-[![Binder](https://mybinder.org/badge_logo.svg)](https://mybinder.org/v2/gh/USERNAME/startup-deal-evaluator/main?filepath=startup_deal_evaluator.ipynb)
-```
+- **Actions workflow** – add CI pipeline (`.github/workflows/ci.yml`) running `pytest` and `_tools/smoke_test.py` on push.
 
 ## 🔧 Troubleshooting
 
-### Common Issues and Solutions
+| Issue | Resolution |
+| --- | --- |
+| Remote rejects due to large files | Remove `flask_app/.model_cache/` or `kaggle_data/` from history, add to `.gitignore`, recommit. |
+| Authentication prompts every push | Create a fine-grained GitHub PAT and use `git credential-manager` or cache credentials: `git config --global credential.helper manager-core`. |
+| Wrong repo root | Run `git status` to confirm. If you accidentally initialized inside `flask_app/`, move `.git` to workspace root before retrying. |
+| Line ending warnings | Set `git config core.autocrlf true` to normalize Windows line endings. |
 
-1. **"Permission denied" error**:
-   ```powershell
-   # Use HTTPS instead of SSH
-   git remote set-url origin https://github.com/USERNAME/startup-deal-evaluator.git
-   ```
+## 📣 Sharing & Next Steps
 
-2. **Large file warnings**:
-   - Our project files are all small, so this shouldn't be an issue
-   - If you add large datasets later, consider Git LFS
+- **Demo instructions** – reference `docs/user_guide.md` for UI walkthrough and `README.md` for quick start.
+- **Issue tracking** – enable GitHub Issues for feature requests or bug triage.
+- **Security** – before making the repo public, scrub for secrets (run `git secrets --scan` if available) and ensure `kaggle.json` is gitignored.
 
-3. **Authentication prompts**:
-   - Modern Git may prompt for GitHub username/password
-   - Consider setting up Personal Access Tokens for security
+## 🎉 Congratulations
 
-4. **Line ending warnings**:
-   ```powershell
-   git config --global core.autocrlf true
-   ```
+Once this guide is complete you will have:
 
-5. **Notebook not rendering on GitHub**:
-   - GitHub automatically renders .ipynb files
-   - If issues persist, use nbviewer: `https://nbviewer.jupyter.org/github/USERNAME/startup-deal-evaluator/blob/main/startup_deal_evaluator.ipynb`
+✅ A polished GitHub repository showcasing Deal Scout’s modern architecture.  
+✅ Updated documentation aligned with the Flask implementation.  
+✅ A repeatable bootstrap script (`run_web_app.ps1`) tested on Windows.  
+✅ Clear runway for future CI/CD and portfolio demos.
 
-## 🎉 Congratulations!
-
-Once you complete these steps, your Startup Deal Evaluator will be:
-
-✅ **Publicly available** on GitHub  
-✅ **Professionally documented** with comprehensive guides  
-✅ **Ready for collaboration** with proper version control  
-✅ **Discoverable** by the ML/finance community  
-✅ **Portfolio-ready** for showcasing your skills  
-
-Your project demonstrates:
-- **Machine Learning expertise** (Random Forest, feature engineering)
-- **Data Science skills** (EDA, visualization, model evaluation)
-- **Software engineering** (clean code, documentation, testing)
-- **Product development** (interactive UI, user experience)
-- **Professional deployment** (Git, GitHub, documentation)
-
-## 📞 Need Help?
-
-If you encounter any issues during deployment:
-
-1. **Git Issues**: Check the official Git documentation
-2. **GitHub Issues**: Visit GitHub's help center
-3. **Project Questions**: Create an issue in your repository
-4. **Technical Problems**: Review the technical_specs.md in the docs folder
-
----
-
-**Happy Coding! 🚀** Your ML-powered startup evaluator is now ready to help investment firms make data-driven decisions!
+Use the repository link in resumes, investor updates, or client deliverables to highlight both product thinking and engineering execution.

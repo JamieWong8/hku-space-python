@@ -34,7 +34,21 @@ if (Test-Path $flaskDir) {
 # Fast-start defaults (can be overridden by environment)
 # Enable Kaggle by default; script will gracefully fall back to local cached CSV if needed
 if (-not $env:SKIP_KAGGLE) { $env:SKIP_KAGGLE = 'false' }
+# Limit precomputation to first 200 rows for faster startup unless overridden
 if (-not $env:PRECOMPUTE_MAX_ROWS) { $env:PRECOMPUTE_MAX_ROWS = '200' }
+# Make startup instant by default: skip heavy training on import, use fast bootstrap, lazy background training
+# Note: Tier precomputation now happens automatically after training (both bootstrap and full)
+if (-not $env:AUTO_TRAIN_ON_IMPORT) { $env:AUTO_TRAIN_ON_IMPORT = 'false' }
+if (-not $env:BOOTSTRAP_FAST) { $env:BOOTSTRAP_FAST = 'true' }
+if (-not $env:LAZY_BACKGROUND_TRAIN) { $env:LAZY_BACKGROUND_TRAIN = 'true' }
+if (-not $env:CACHE_MODELS) { $env:CACHE_MODELS = 'true' }
+
+# Probability tempering defaults to prevent contradictory displays (e.g., Avoid with 0.93 prob)
+if (-not $env:PROB_TEMPER_ENABLE) { $env:PROB_TEMPER_ENABLE = 'true' }
+if (-not $env:PROB_TEMPER_TRIP) { $env:PROB_TEMPER_TRIP = '0.85' }
+if (-not $env:PROB_TEMPER_MAX) { $env:PROB_TEMPER_MAX = '0.85' }
+if (-not $env:PROB_TEMPER_MIN) { $env:PROB_TEMPER_MIN = '0.50' }
+if (-not $env:PROB_TEMPER_ONLY_AVOID) { $env:PROB_TEMPER_ONLY_AVOID = 'true' }
 
 # Resolve Python command (prefer 'python', fallback to 'py -3')
 $pythonCmd = 'python'
@@ -116,10 +130,13 @@ $env:FLASK_ENV = "development"
 
 Write-Host ""
 Write-Host "Flask Web Application Configuration:" -ForegroundColor Cyan
-Write-Host "   ML Models: Training on startup..." -ForegroundColor White
+Write-Host "   ML Models: Instant bootstrap + lazy background training with auto-precompute" -ForegroundColor White
 Write-Host "   Web Server: http://localhost:5000" -ForegroundColor White
 Write-Host "   API Endpoints: /api/evaluate, /api/examples" -ForegroundColor White
 Write-Host "   Debug Mode: Enabled" -ForegroundColor White
+Write-Host "   Kaggle Enabled: $($env:SKIP_KAGGLE -eq 'false')" -ForegroundColor White
+Write-Host "   Auto-Precompute: Enabled | Max Rows: $($env:PRECOMPUTE_MAX_ROWS)" -ForegroundColor White
+Write-Host "   Caching: $($env:CACHE_MODELS)" -ForegroundColor White
 Write-Host ""
 
 Write-Host "Starting Flask development server..." -ForegroundColor Green

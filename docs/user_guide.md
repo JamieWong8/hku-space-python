@@ -1,309 +1,222 @@
-# Startup Deal Evaluator - User Guide
+# Deal Scout – User Guide
 
-## Table of Contents
-1. [Getting Started](#getting-started)
-2. [Understanding the Interface](#understanding-the-interface)
-3. [Inputting Startup Data](#inputting-startup-data)
-4. [Interpreting Results](#interpreting-results)
-5. [Advanced Features](#advanced-features)
-6. [Troubleshooting](#troubleshooting)
-
-## Getting Started
-
-### First Time Setup
-
-1. **Environment Setup**
-   - Ensure Python 3.8+ is installed
-   - Install required packages: `pip install -r requirements.txt`
-   - Launch Jupyter: `jupyter notebook startup_deal_evaluator.ipynb`
-
-2. **Initial Run**
-   - Execute all cells sequentially (Cell → Run All)
-   - Wait for all models to train (takes 2-3 minutes)
-   - Navigate to the interactive dashboard (Section K)
-
-### Data Sources
-
-The system supports multiple data sources:
-
-- **Synthetic Data** (Default): Automatically generated realistic startup data
-- **Kaggle Datasets**: Real startup funding data (requires API setup)
-- **Custom CSV**: Upload your own startup dataset
-
-#### Setting up Kaggle API (Optional)
-
-1. Create account at [kaggle.com](https://kaggle.com)
-2. Go to Account → API → Create New API Token
-3. Download `kaggle.json` to `~/.kaggle/` directory
-4. Restart the notebook - it will automatically use real data
-
-## Understanding the Interface
-
-### Dashboard Layout
-
-The interactive dashboard consists of three main sections:
-
-#### 1. Company Information Panel
-- **Industry**: Select from 12 pre-defined categories
-- **Location**: Choose from major startup hubs
-- **Funding Round**: Seed, Series A/B/C/D+
-- **Team Size**: Current number of employees
-- **Years Since Founded**: Company age in years
-
-#### 2. Financial Information Panel
-- **Funding Amount**: Total funding raised (logarithmic scale)
-- **Annual Revenue**: Current yearly revenue
-- **Market Size**: Total addressable market in billions
-- **Number of Investors**: Count of current investors
-
-#### 3. Market Information Panel
-- **Competition Level**: Scale of 1-10 (1=low, 10=high competition)
-
-### Control Elements
-
-- **Evaluate Deal Button**: Triggers ML analysis
-- **Results Display**: Shows comprehensive evaluation results
-- **Visualization Panels**: Six interactive charts and metrics
-
-## Inputting Startup Data
-
-### Required Information
-
-All fields must be completed for accurate evaluation:
-
-#### Company Basics
-- **Industry**: Choose the most relevant category
-  - FinTech, Healthcare, E-commerce, SaaS, AI/ML, Biotech
-  - EdTech, Gaming, Cybersecurity, IoT, Blockchain, Marketing
-
-- **Location**: Select primary operational location
-  - Prioritizes major startup ecosystems
-  - Impacts valuation and success probability models
-
-#### Financial Metrics
-- **Funding Amount**: Use the logarithmic slider for precise values
-  - Range: $100K to $100M
-  - Reflects total funding raised to date
-
-- **Revenue**: Annual recurring revenue or latest yearly revenue
-  - $0 for pre-revenue startups
-  - Important predictor of success
-
-#### Market Context
-- **Market Size**: Total addressable market in billions USD
-  - Research industry reports for accurate estimates
-  - Larger markets generally indicate better opportunities
-
-- **Competition Level**: Subjective assessment of competitive intensity
-  - 1-3: Low competition, blue ocean opportunities
-  - 4-6: Moderate competition, differentiation important
-  - 7-10: High competition, execution critical
-
-### Data Quality Tips
-
-1. **Be Realistic**: Use actual or well-researched values
-2. **Stay Current**: Use most recent financial data
-3. **Consider Context**: Adjust market size for serviceable addressable market
-4. **Benchmark**: Compare similar companies for validation
-
-## Interpreting Results
-
-### Primary Metrics
-
-#### Deal Attractiveness Score (0-100)
-- **75-100**: Strong Buy - Excellent opportunity
-- **60-74**: Buy - Good investment with manageable risks
-- **40-59**: Hold - Moderate investment, monitor closely
-- **0-39**: Avoid - High risk, poor fundamentals
-
-**Score Components**:
-- Success Probability (40% weight)
-- Revenue Generation (20% weight)
-- Market Opportunity (20% weight)
-- Team Scale (10% weight)
-- Investor Interest (10% weight)
-
-#### Success Probability (0-100%)
-ML-predicted likelihood of successful exit (acquisition or IPO)
-- Based on 56 engineered features
-- Trained on startup outcome data
-- Includes confidence intervals
-
-#### Predicted Funding Range
-Estimated appropriate funding amount based on:
-- Company stage and metrics
-- Industry benchmarks
-- Market conditions
-- Team size and traction
-
-### Visualization Panels
-
-#### 1. Deal Attractiveness Gauge
-- Color-coded risk assessment
-- Needle position shows current score
-- Green (75+): Low risk, high return potential
-- Yellow (40-74): Moderate risk/return
-- Red (0-39): High risk, low return potential
-
-#### 2. Success Probability Comparison
-- Your startup vs industry average
-- Bar chart with percentage labels
-- Identifies relative performance
-
-#### 3. Feature Contribution Analysis
-- Top 10 most important factors
-- Shows how your startup scores on each
-- Identifies strengths and weaknesses
-
-#### 4. Industry Landscape
-- Scatter plot of industry companies
-- X-axis: Median funding amount
-- Y-axis: Success rate
-- Red star: Your startup's industry position
-
-#### 5. Risk-Return Positioning
-- Four-quadrant analysis
-- Risk vs return potential mapping
-- Optimal position: Low risk, high return (top-left)
-
-#### 6. Market Factors Analysis
-- Radar chart of key business metrics
-- Five dimensions: Market size, competition, team, revenue, investors
-- Shows relative strengths and areas for improvement
-
-### Key Insights
-
-The system provides contextual insights such as:
-
-- **🟢 High success probability** - Strong fundamentals detected
-- **💰 Strong revenue generation** - Above-average monetization
-- **👥 Large team** - Established operations
-- **🎯 Favorable competitive landscape** - Market opportunity
-- **🌍 Large addressable market** - Growth potential
-
-## Advanced Features
-
-### Comparative Analysis
-
-Compare multiple startups by:
-1. Evaluating each startup separately
-2. Recording attractiveness scores
-3. Creating side-by-side comparison
-4. Analyzing feature importance differences
-
-### Sensitivity Analysis
-
-Test how changes affect scores:
-1. Baseline evaluation
-2. Modify single parameter (e.g., increase revenue by 50%)
-3. Re-evaluate
-4. Compare score changes
-
-### Custom Scenarios
-
-Create "what-if" scenarios:
-- **Best Case**: Optimize all parameters
-- **Worst Case**: Pessimistic assumptions
-- **Realistic Case**: Conservative estimates
-
-### Model Insights
-
-Understand model decisions:
-- **Feature Importance Rankings**: Which factors matter most
-- **Contribution Analysis**: How each feature affects your score
-- **Industry Benchmarks**: Performance vs peers
-
-## Troubleshooting
-
-### Common Issues
-
-#### 1. Installation Problems
-**Error**: Package installation failures
-**Solution**: 
-```bash
-pip install --upgrade pip
-pip install -r requirements.txt --no-cache-dir
-```
-
-#### 2. Kernel Issues
-**Error**: Jupyter kernel crashes or becomes unresponsive
-**Solution**:
-- Restart kernel: Kernel → Restart
-- Clear outputs: Cell → All Output → Clear
-- Re-run all cells
-
-#### 3. Widget Display Issues
-**Error**: Interactive widgets not displaying
-**Solution**:
-```bash
-jupyter nbextension enable --py widgetsnbextension --sys-prefix
-```
-
-#### 4. Model Training Errors
-**Error**: Random Forest training fails
-**Solution**:
-- Check data quality in earlier cells
-- Ensure feature engineering completed successfully
-- Verify no missing values in processed data
-
-#### 5. Visualization Problems
-**Error**: Charts not displaying correctly
-**Solution**:
-- Update matplotlib: `pip install --upgrade matplotlib`
-- Restart kernel and re-run visualization cells
-- Check for backend compatibility
-
-### Performance Optimization
-
-#### Large Datasets
-- Reduce sample size in synthetic data generator
-- Use feature selection to reduce dimensionality
-- Consider ensemble method alternatives
-
-#### Memory Issues
-- Clear variables: `del variable_name`
-- Restart kernel periodically
-- Use smaller batch sizes for processing
-
-### Data Validation
-
-#### Input Validation
-- Ensure all required fields are completed
-- Check for reasonable value ranges
-- Validate industry/location selections
-
-#### Model Validation
-- Verify cross-validation scores are stable
-- Check for overfitting indicators
-- Monitor prediction consistency
-
-### Getting Help
-
-1. **Documentation**: Review technical specifications
-2. **GitHub Issues**: Report bugs or request features
-3. **Community**: Share experiences with other users
-4. **Support**: Contact maintainers for complex issues
-
-## Best Practices
-
-### For Investment Firms
-1. **Standardize Inputs**: Use consistent data collection methods
-2. **Regular Updates**: Refresh market size and competition data
-3. **Portfolio Analysis**: Compare deals within same time period
-4. **Risk Management**: Use scores as one factor among many
-
-### For Startup Evaluation
-1. **Multiple Scenarios**: Test optimistic, realistic, and pessimistic cases
-2. **Temporal Analysis**: Track changes over time
-3. **Peer Comparison**: Benchmark against similar companies
-4. **Action Items**: Use insights to identify improvement areas
-
-### Data Management
-1. **Version Control**: Track model versions and data sources
-2. **Backup Results**: Save evaluation outputs for later analysis
-3. **Documentation**: Record assumptions and methodologies
-4. **Validation**: Cross-check with external data sources
+This guide walks through the Deal Scout web experience, from launching the application to interpreting advanced analytics and managing diagnostics.
 
 ---
 
-This user guide provides comprehensive instructions for maximizing the value of the Startup Deal Evaluator. For technical details, see the Technical Specifications document.
+## 1. Launching the Application
+
+### Windows (recommended)
+
+```powershell
+cd "c:\Users\jamie\OneDrive\Documents\Deal Scout\flask_app"
+.\run_web_app.ps1
+```
+
+The script bootstraps a virtual environment, installs dependencies, loads Kaggle credentials (if present), and starts the Flask server on http://localhost:5000.
+
+### Cross-platform manual start
+
+1. Create/activate a virtual environment and install requirements:
+   ```powershell
+   python -m venv venv
+   .\venv\Scripts\Activate.ps1  # macOS/Linux: source venv/bin/activate
+   pip install -r requirements.txt
+   ```
+2. Export recommended environment flags:
+   ```powershell
+   set FLASK_ENV=development
+   set AUTO_TRAIN_ON_IMPORT=false
+   set BOOTSTRAP_FAST=true
+   ```
+3. Launch the app:
+   ```powershell
+   python app.py
+   ```
+
+---
+
+## 2. Understanding the Interface
+
+### 2.1 Layout Overview
+
+- **Header Banner:** Displays build ID, data source (Kaggle vs synthetic), and instant diagnostics toggles.
+- **Filter Drawer:** Controls search, industries, consolidated industry groups, regions, funding rounds, success status, and attractiveness tiers.
+- **Company Catalog:** Card/grid showing startups with key metrics such as funding, valuation, success probability, and tier badges.
+- **Analysis Drawer/Modal:** Opens per company with charts, component scores, narrative commentary, and admin shortcuts.
+
+### 2.2 Filter Controls
+
+| Control | Description |
+| --- | --- |
+| Search | Case-insensitive match on company name. |
+| Industry | Exact industry labels from the dataset. |
+| Industry Group | Consolidated categories (Fintech, Healthcare, SaaS, etc.). |
+| Region | Auto-mapped regions (North America, Europe, Asia, etc.). |
+| Funding Round | Seed → Series D+ filter. |
+| Status | Operating, Acquired, IPO, Closed. |
+| Tier | Attractiveness tier (Invest ≥65% / Monitor 50-64% / Avoid <50%). |
+
+> Tier filters leverage precomputed columns when available; thresholds updated Oct 2025 for realistic VC funnel distribution.
+
+### 2.3 Company Card Details
+
+Each card surfaces:
+
+- `attractiveness_score` – 0–100 scaled rating (Invest ≥65, Monitor 50-64, Avoid <50).
+- `investment_tier` – Invest / Monitor / Avoid labels.
+- `funding_amount_usd`, `valuation_usd`, `team_size`, `market_size_billion_usd`.
+- Risk level when cached/precomputed.
+
+Click **View analysis** to open the detailed modal.
+
+---
+
+## 3. Company Analysis Modal
+
+### 3.1 Summary Panel
+
+- Headline metrics: attractiveness score, funding recommendation, valuation range, risk level.
+- Investment commentary: bullet list of ML-generated insights.
+- Tier + risk badge for quick triage.
+- Note: Success probability removed from display (Oct 2025) - internal metric only.
+
+### 3.2 Component Charts
+
+| Chart | Insights Provided |
+| --- | --- |
+| Business fundamentals radar | Market size, competition, team, valuation, funding normalized scores. |
+| Component score bars | Market, team, financial, growth component contributions. |
+| Feature contribution pie | Most influential factors (no revenue slice in tempered outputs). |
+| Risk/return scatter | Position relative to simulated industry peers. |
+| Industry success rates | Benchmarking across major verticals (with active industry highlighted). |
+
+### 3.3 Risk Factors
+
+Dynamic list summarizing critical risks (e.g., low funding, small team, high competition, early stage). These signals originate from `model.py` heuristics and provide a qualitative complement to the score.
+
+### 3.4 Admin Shortcuts (when banner visible)
+
+- Trigger tier precompute.
+- Clear caches (memory/disk).
+- View Kaggle ingest status.
+
+---
+
+## 4. Data Sources & Kaggle Integration
+
+### 4.1 Credential Setup
+
+- Preferred: place `kaggle.json` in `flask_app/` or configure `KAGGLE_USERNAME` / `KAGGLE_KEY` environment variables.
+- Alternately, use system-wide `~/.kaggle/kaggle.json`.
+
+The bootstrap script will auto-detect credentials and set environment variables for the session.
+
+### 4.2 Source Prioritization
+
+1. KaggleHub dataset `arindam235/startup-investments-crunchbase`.
+2. Cached copy under `flask_app/kaggle_data/` (if previously downloaded).
+3. Bundled `kaggle_data/investments_VC.csv` failsafe.
+4. Synthetic generator (as a last resort or when `SKIP_KAGGLE=true`).
+
+Use `/api/data-source` or the UI banner to confirm which source is active.
+
+---
+
+## 5. Advanced Workflows
+
+### 5.1 Batch Analysis
+
+- Select multiple companies via the UI comparison controls or POST to `/api/companies/analyze` with company IDs.
+- Review the `analysis_results` array for batched insights and confirm `summary.total_analyzed` matches expectations.
+
+### 5.2 Precompute Attractiveness Tiers
+
+1. Invoke `/api/admin/precompute` from the admin banner or via REST:
+   ```powershell
+   curl -X POST http://localhost:5000/api/admin/precompute -H "Content-Type: application/json" -d '{"max_rows": 400, "save_to_disk": true}'
+   ```
+2. Monitor `/api/diagnostics/score-distribution` for updated stats.
+3. Cached values persist under `.model_cache/`.
+
+### 5.3 Clearing Caches
+
+- Use `/api/admin/cache/clear` with payload options:
+  - `{ "disk": false }` – drop only in-memory analysis cache.
+  - `{ "disk": true }` – delete `.model_cache/` artifacts in addition to memory.
+
+### 5.4 Adjusting Probability Tempering
+
+- Environment variables `PROB_TEMPER_ENABLE`, `PROB_TEMPER_TRIP`, `PROB_TEMPER_MAX`, `PROB_TEMPER_MIN`, `PROB_TEMPER_ONLY_AVOID` control smoothing of success probabilities to avoid mismatched tiers (e.g., Avoid with 0.92 probability).
+- Update in shell prior to launch:
+  ```powershell
+  $env:PROB_TEMPER_MAX = '0.80'
+  .\run_web_app.ps1
+  ```
+
+---
+
+## 6. Diagnostics & Troubleshooting
+
+### 6.1 Quick Status Checklist
+
+| Check | Endpoint / Location | Expected Output |
+| --- | --- | --- |
+| Server health | `/health` | `{ "status": "healthy" }` |
+| Template/version info | `/__debug/info` | JSON with `build_id`, template mtime, cache headers. |
+| Route registration | `/__routes` | List of endpoints with HTTP methods. |
+| Training status | `/api/diagnostics/training-status` | `background_training_alive`, model readiness. |
+| Score distribution | `/api/diagnostics/score-distribution` | Histogram statistics, tier counts. |
+| Coherence audit | `/api/diagnostics/coherence-audit` | Mismatch counts for tiers vs probabilities. |
+
+### 6.2 Common Scenarios
+
+- **Blank catalog after applying tier filter**
+  - Confirm precompute columns exist (`precomputed_attractiveness_score`).
+  - Trigger `/api/admin/precompute` if absent.
+  - Check logs for exceptions during fallback analysis.
+
+- **Kaggle download failures**
+  - Ensure credentials valid (`/api/data-source` shows synthetic fallback otherwise).
+  - Inspect the console output from `run_web_app.ps1` for KaggleHub error messages.
+  - Use cached CSV by ensuring `kaggle_data/investments_VC.csv` exists.
+
+- **Slow warmup or high CPU**
+  - Verify `AUTO_TRAIN_ON_IMPORT=false` and `BOOTSTRAP_FAST=true`.
+  - Reduce `PRECOMPUTE_MAX_ROWS` or set `PRECOMPUTE_DISABLE=true` during development.
+
+- **Probability looks inconsistent with tier**
+  - Review `/api/diagnostics/coherence-audit`.
+  - Tune `PROB_TEMPER_*` environment values.
+  - Confirm caches aren’t stale by clearing them and recomputing.
+
+### 6.3 Log Files
+
+- `debug_log.txt` – General runtime messages (including analysis request traces).
+- `error_debug.txt` – Stack traces for 500 errors.
+- Manually rotate these files or tail them during investigations.
+
+---
+
+## 7. Best Practices
+
+- **Use filters first:** Narrow the catalog with tier + region filters before opening detailed analyses.
+- **Precompute before demos:** Run `/api/admin/precompute` to guarantee fast tier filtering during live presentations.
+- **Capture diagnostics:** When filing issues, attach outputs from `/api/diagnostics/training-status` and `/api/data-source`.
+- **Version control configs:** Track `.env` or deployment scripts to ensure consistent instant-start settings across environments.
+- **Validate after code changes:** Run `_tools/smoke_test.py` and relevant `pytest` suites before pushing to shared branches.
+
+---
+
+## 8. Additional Resources
+
+- [Technical Specifications](technical_specs.md) – Deep dive into model architecture, feature sets, and deployment diagrams.
+- [Project Summary](project_summary.md) – Executive overview for stakeholders.
+- [Deployment Guide](../DEPLOYMENT_GUIDE.md) – Instructions for publishing to GitHub or cloud environments.
+- [Root README](../README.md) – Product overview and roadmap.
+
+For questions or feedback, file an issue in the repository with logs and diagnostic outputs.
+
+---
+
+**Deal Scout keeps your diligence team ahead—use the filters, run diagnostics, and share insights effortlessly.**

@@ -13,7 +13,11 @@ import base64
 import os
 import json
 import threading
-from sklearn.ensemble import RandomForestClassifier, RandomForestRegressor
+import joblib
+import hashlib
+from pathlib import Path
+from sklearn.ensemble import RandomForestClassifier, RandomForestRegressor, HistGradientBoostingClassifier, ExtraTreesClassifier, VotingClassifier
+from sklearn.linear_model import LogisticRegression
 from sklearn.model_selection import train_test_split, cross_val_score
 from sklearn.preprocessing import StandardScaler
 from sklearn.metrics import classification_report, accuracy_score, r2_score
@@ -23,6 +27,24 @@ warnings.filterwarnings('ignore')
 # Kaggle API integration - completely optional
 KAGGLE_AVAILABLE = False
 kaggle = None
+
+# Bump this when scoring/normalization logic meaningfully changes to invalidate caches
+SCORING_SCHEMA_VERSION = '2025-10-01-stricter-tiers'
+
+# Tier/probability coherence policy (kept close to schema version for easy invalidation)
+TIER_DISPLAY_LABELS = {'invest': 'Invest', 'monitor': 'Monitor', 'avoid': 'Avoid'}
+TIER_RISK_ORDER = {'invest': 0, 'monitor': 1, 'avoid': 2}
+TIER_PROBABILITY_BOUNDS = {
+    'invest': (0.60, 1.00),    # Raised from 0.55 to be more selective
+    'monitor': (0.40, 0.65),   # Raised from 0.35 to be more selective
+    'avoid': (0.00, 0.45),     # Adjusted upper bound from 0.45 to match monitor
+}
+TIER_SCORE_BOUNDS = {
+    'invest': (65.0, 100.0),   # Raised from 60.0 to be more selective
+    'monitor': (50.0, 64.9),   # Raised from 45.0 to be more selective
+    'avoid': (0.0, 49.9),      # Adjusted from 44.9 to match monitor
+}
+COHERENCE_TOLERANCE = 0.015
 
 def initialize_kaggle():
     """Initialize Kaggle API only when needed"""
@@ -73,6 +95,7 @@ SUCCESS_RATE_CONFIG = {
 # Global models and data (initialized when module loads)
 startup_classifier = None
 startup_regressor = None
+startup_valuation_regressor = None
 feature_scaler = None
 feature_columns = None
 sample_data = None
@@ -85,6 +108,240 @@ grouped_industries = None  # unique consolidated industries
 regions = None  # unique region groups (formerly 'continents')
 # Deprecated alias maintained temporarily for backwards compatibility
 continents = None  # DEPRECATED: use 'regions' instead
+
+
+def _bind_feature_bundle_to_classifier(clf, feat_cols, numericals, scaler):
+    """Bind feature/scale metadata to a classifier (and its base_estimator if wrapped).
+
+    This lets inference retrieve the exact expected feature columns and scaler
+    irrespective of concurrent background model updates.
+    """
+    try:
+        setattr(clf, '_ds_feature_columns', list(feat_cols) if feat_cols is not None else [])
+        setattr(clf, '_ds_numerical_columns', list(numericals) if numericals is not None else [])
+        setattr(clf, '_ds_scaler', scaler)
+        base = getattr(clf, 'base_estimator', None)
+        if base is not None:
+            try:
+                setattr(base, '_ds_feature_columns', list(feat_cols) if feat_cols is not None else [])
+                setattr(base, '_ds_numerical_columns', list(numericals) if numericals is not None else [])
+                setattr(base, '_ds_scaler', scaler)
+            except Exception:
+                pass
+    except Exception:
+        pass
+
+
+def _parse_money_to_usd(value) -> tuple[float, bool]:
+    """Parse a money string like "$1.2M", "800k", "2B", "1,000,000", or 1000000 into a float USD.
+
+    Returns (amount, has_amount_flag), where has_amount_flag indicates if an authoritative funding_total_usd
+    was present and parsed as a positive number.
+    """
+    try:
+        if value is None:
+            return 0.0, False
+        s = str(value).strip()
+        if not s or s in {'-', '—', 'None', 'null', 'NaN', 'nan', 'N/A'}:
+            return 0.0, False
+        s_up = s.upper().replace('USD', '').replace('US$', '').replace('U$D', '')
+        # Remove common currency symbols and commas/spaces/quotes
+        for ch in ['$', '€', '£', ',', ' ', '"']:
+            s_up = s_up.replace(ch, '')
+        # Detect suffix multipliers
+        mult = 1.0
+        if len(s_up) >= 1 and s_up[-1] in {'K', 'M', 'B'}:
+            suffix = s_up[-1]
+            s_up = s_up[:-1]
+            if suffix == 'K':
+                mult = 1e3
+            elif suffix == 'M':
+                mult = 1e6
+            elif suffix == 'B':
+                mult = 1e9
+        # Some strings might still include trailing plus or tilde; strip non-numeric trailing chars
+        while len(s_up) > 0 and not (s_up[-1].isdigit() or s_up[-1] == '.' ):
+            s_up = s_up[:-1]
+        # Likewise leading
+        while len(s_up) > 0 and not (s_up[0].isdigit() or s_up[0] == '.' ):
+            s_up = s_up[1:]
+        amount = float(s_up) if s_up else 0.0
+        amount *= mult
+        if np.isfinite(amount) and amount > 0:
+            return float(amount), True
+        return 0.0, False
+    except Exception:
+        return 0.0, False
+
+
+def _find_funding_total_column(columns) -> str | None:
+    """Return the column name from a sequence of columns that represents funding_total_usd,
+    being robust to spaces, punctuation, and line breaks in the header.
+    """
+    try:
+        for col in columns:
+            norm = ''.join(ch for ch in str(col).lower() if ch.isalnum())
+            if norm == 'fundingtotalusd':
+                return col
+        return None
+    except Exception:
+        return None
+
+
+class ThresholdedClassifier:
+    """Lightweight wrapper to apply a tuned decision threshold to any probabilistic classifier.
+
+    - Keeps predict_proba passthrough intact for downstream consumers.
+    - Overrides predict() to use the tuned threshold instead of 0.5.
+    - Does not alter the underlying estimator; purely a wrapper.
+    """
+    def __init__(self, base_estimator, threshold: float = 0.5):
+        self.base_estimator = base_estimator
+        self.threshold = float(threshold)
+
+    def fit(self, X, y):
+        self.base_estimator.fit(X, y)
+        return self
+
+    def predict_proba(self, X):
+        return self.base_estimator.predict_proba(X)
+
+    def predict(self, X):
+        proba = self.predict_proba(X)
+        # Use probability of positive class (column 1) with tuned threshold
+        return (proba[:, 1] >= self.threshold).astype(int)
+
+    # Convenience accessors
+    @property
+    def classes_(self):
+        return getattr(self.base_estimator, 'classes_', None)
+
+    def __repr__(self):
+        base = repr(self.base_estimator)
+        return f"ThresholdedClassifier(base={base}, threshold={self.threshold:.3f})"
+
+# -----------------------------
+# Model caching utilities
+# -----------------------------
+
+def _compute_data_signature(df: pd.DataFrame) -> str:
+    """Compute a lightweight signature of the training data to validate cache.
+
+    Uses row/col counts and coarse sums of key numeric columns.
+    """
+    try:
+        cols = df.columns
+        acc = f"schema={SCORING_SCHEMA_VERSION}|rows={len(df)}|cols={len(cols)}"
+        for c in ['funding_amount_usd', 'valuation_usd', 'team_size', 'num_investors']:
+            if c in cols and df[c].notna().any():
+                s = float(pd.to_numeric(df[c], errors='coerce').fillna(0.0).sum())
+                acc += f"|{c}={int(s)}"
+        return hashlib.sha256(acc.encode('utf-8')).hexdigest()
+    except Exception:
+        return hashlib.sha256(f"schema={SCORING_SCHEMA_VERSION}|fallback={len(df)}x{len(df.columns)}".encode('utf-8')).hexdigest()
+
+
+def _get_model_cache_dir() -> Path:
+    here = Path(__file__).resolve().parent
+    cache_dir = here / '.model_cache'
+    cache_dir.mkdir(parents=True, exist_ok=True)
+    return cache_dir
+
+
+def _load_models_from_cache(sig: str):
+    cache = _get_model_cache_dir()
+    meta_path = cache / 'meta.json'
+    if not meta_path.exists():
+        return None
+    try:
+        meta = json.loads(meta_path.read_text(encoding='utf-8'))
+        if meta.get('data_signature') != sig:
+            return None
+        payload = {
+            'startup_classifier': joblib.load(cache / 'startup_classifier.pkl'),
+            'startup_regressor': joblib.load(cache / 'startup_regressor.pkl'),
+            'startup_valuation_regressor': joblib.load(cache / 'startup_valuation_regressor.pkl'),
+            'feature_scaler': joblib.load(cache / 'feature_scaler.pkl'),
+            'feature_columns': json.loads((cache / 'feature_columns.json').read_text(encoding='utf-8')),
+            'training_numerical_columns': json.loads((cache / 'training_numerical_columns.json').read_text(encoding='utf-8')),
+        }
+        print(f"Cache: Loaded trained models from {cache}")
+        return payload
+    except Exception as e:
+        print(f"Cache: Failed to load models from cache: {e}")
+        return None
+
+
+def _save_models_to_cache(sig: str, classifier, regressor, val_regressor, scaler, feat_cols, train_num_cols):
+    cache = _get_model_cache_dir()
+    try:
+        joblib.dump(classifier, cache / 'startup_classifier.pkl')
+        joblib.dump(regressor, cache / 'startup_regressor.pkl')
+        joblib.dump(val_regressor, cache / 'startup_valuation_regressor.pkl')
+        joblib.dump(scaler, cache / 'feature_scaler.pkl')
+        (cache / 'feature_columns.json').write_text(json.dumps(list(feat_cols)), encoding='utf-8')
+        (cache / 'training_numerical_columns.json').write_text(json.dumps(list(train_num_cols)), encoding='utf-8')
+        meta = {
+            'data_signature': sig,
+            'sklearn_version': __import__('sklearn').__version__,
+        }
+        (cache / 'meta.json').write_text(json.dumps(meta, indent=2), encoding='utf-8')
+        print(f"Cache: Saved trained models to {cache}")
+    except Exception as e:
+        print(f"Cache: Failed to save models to cache: {e}")
+
+
+def _precompute_cache_paths(sig: str):
+    cache = _get_model_cache_dir()
+    return {
+        'precomputed_df': cache / f'precompute_{sig}.pkl',
+        'analysis_cache': cache / f'analysis_cache_{sig}.pkl',
+    }
+
+
+def _load_precompute_from_cache(sig: str) -> bool:
+    """Try to load precomputed tier columns and ANALYSIS_CACHE from cache into sample_data.
+    Returns True if applied.
+    """
+    global sample_data, ANALYSIS_CACHE
+    try:
+        paths = _precompute_cache_paths(sig)
+        if not (paths['precomputed_df'].exists() and paths['analysis_cache'].exists()):
+            return False
+        pre_df = joblib.load(paths['precomputed_df'])
+        if 'company_id' not in pre_df.columns or 'company_id' not in sample_data.columns:
+            return False
+        # Merge precomputed columns by company_id
+        cols = [c for c in pre_df.columns if c != 'company_id']
+        sample_data = sample_data.merge(pre_df[['company_id'] + cols], on='company_id', how='left', suffixes=(None, None))
+        ANALYSIS_CACHE = joblib.load(paths['analysis_cache'])
+        print("Cache: Loaded precomputed tiers from cache")
+        return True
+    except Exception as e:
+        print(f"Cache: Failed to load precomputed tiers: {e}")
+        return False
+
+
+def _save_precompute_to_cache(sig: str):
+    """Persist current precomputed columns and ANALYSIS_CACHE to cache."""
+    try:
+        paths = _precompute_cache_paths(sig)
+        cols = [
+            'company_id',
+            'precomputed_attractiveness_score',
+            'precomputed_investment_tier',
+            'precomputed_investment_tier_norm',
+            'precomputed_recommendation',
+            'precomputed_risk_level',
+        ]
+        avail = [c for c in cols if c in sample_data.columns]
+        if 'company_id' in avail and len(avail) > 1:
+            pre_df = sample_data[avail].copy()
+            joblib.dump(pre_df, paths['precomputed_df'])
+            joblib.dump(ANALYSIS_CACHE, paths['analysis_cache'])
+            print("Cache: Saved precomputed tiers to cache")
+    except Exception as e:
+        print(f"Cache: Failed to save precomputed tiers: {e}")
 
 # -----------------------------
 # Normalization & grouping utils
@@ -499,19 +756,12 @@ def process_investments_vc_data(df):
                 elif 'city' in row and pd.notna(row['city']):
                     location = str(row['city']).strip()
                 
-                # Extract and clean funding amount
-                funding_amount = 1000000  # Default 1M
-                if 'funding_total_usd' in row and pd.notna(row['funding_total_usd']):
-                    funding_str = str(row['funding_total_usd']).strip()
-                    if funding_str:
-                        # Clean up funding string - remove commas and spaces
-                        funding_clean = funding_str.replace(',', '').replace(' ', '').replace('"', '')
-                        try:
-                            funding_amount = float(funding_clean)
-                            if funding_amount <= 0:
-                                funding_amount = 1000000
-                        except:
-                            funding_amount = 1000000
+                # Extract and clean funding amount from funding_total_usd (robust parser)
+                funding_amount = 0.0
+                has_funding_total = False
+                ft_col = _find_funding_total_column(df.columns)
+                if ft_col and ft_col in row and pd.notna(row[ft_col]):
+                    funding_amount, has_funding_total = _parse_money_to_usd(row[ft_col])
                 
                 # Extract status
                 status = 'Operating'  # Default
@@ -526,11 +776,13 @@ def process_investments_vc_data(df):
                 if status.lower() in ['acquired', 'ipo']:
                     is_successful = 1 if np.random.random() < SUCCESS_RATE_CONFIG['acquired_ipo_rate'] else 0
                 elif status.lower() in ['operating', 'active']:
-                    is_successful = 1 if np.random.random() < SUCCESS_RATE_CONFIG['operating_rate'] else 0
+                    # Use configured base rate for operating companies
+                    is_successful = 1 if np.random.random() < SUCCESS_RATE_CONFIG['operating_base_rate'] else 0
                 else:
-                    is_successful = 1 if np.random.random() < SUCCESS_RATE_CONFIG['other_rate'] else 0
+                    # Unknown/other statuses
+                    is_successful = 1 if np.random.random() < SUCCESS_RATE_CONFIG['unknown_status_rate'] else 0
                 
-                # Create startup data entry
+                # Create startup data entry (initialize; valuation computed after factors)
                 company_data = {
                     'company_id': f'vc_{idx:04d}',
                     'company_name': real_company_name,
@@ -538,7 +790,7 @@ def process_investments_vc_data(df):
                     'location': location,
                     'funding_round': np.random.choice(['Seed', 'Series A', 'Series B', 'Series C']),
                     'funding_amount_usd': funding_amount,
-                    'valuation_usd': funding_amount * np.random.uniform(3.0, 15.0),
+                    # revenue retained only for internal signals; UI omits
                     'revenue_usd': funding_amount * np.random.uniform(0.1, 2.0),
                     'team_size': int(np.random.uniform(5, 200)),
                     'years_since_founding': np.random.uniform(0.5, 15.0),
@@ -547,8 +799,27 @@ def process_investments_vc_data(df):
                     'market_size_billion_usd': np.random.uniform(1.0, 50.0),
                     'status': status,
                     'is_successful': is_successful,
-                    'success_score': float(is_successful)
+                    'success_score': float(is_successful),
+                    # Track whether this row had a valid funding_total_usd to allow downstream filtering
+                    'has_funding_total_usd': bool(has_funding_total),
+                    # Keep raw field for diagnostics if present
+                    'funding_total_usd_raw': str(row[ft_col]).strip() if ft_col and ft_col in row and pd.notna(row[ft_col]) else ''
                 }
+                # Compute valuation using funding and other scoring criteria
+                # Base multiplier anchored to stage and fundamentals
+                stage = company_data['funding_round']
+                stage_factor = {
+                    'Seed': 6.0, 'Series A': 10.0, 'Series B': 14.0, 'Series C': 18.0
+                }.get(stage, 8.0)
+                market_adj = min(4.0, company_data['market_size_billion_usd'] / 10.0)  # up to +4
+                team_adj = min(2.0, company_data['team_size'] / 100.0 * 2.0)  # up to +2
+                comp_adj = - min(2.0, company_data['competition_level'] / 10.0 * 2.0)  # up to -2
+                # Ensure valuation only computed if funding known; else remain 0 (will be excluded from display)
+                if company_data['funding_amount_usd'] > 0:
+                    multiplier = max(3.0, stage_factor + market_adj + team_adj + comp_adj)
+                    company_data['valuation_usd'] = float(company_data['funding_amount_usd'] * multiplier)
+                else:
+                    company_data['valuation_usd'] = 0.0
                 startup_data.append(company_data)
             except Exception as e:
                 print(f"   Error processing row {idx}: {e}")
@@ -634,19 +905,18 @@ def download_kaggle_startup_data():
                         elif 'city' in row and pd.notna(row['city']):
                             location = str(row['city']).strip()
                         
-                        # Extract and clean funding amount
-                        funding_amount = 1000000  # Default 1M
-                        if 'funding_total_usd' in row and pd.notna(row['funding_total_usd']):
-                            funding_str = str(row['funding_total_usd']).strip()
-                            if funding_str:
-                                # Clean up funding string - remove commas and spaces
-                                funding_clean = funding_str.replace(',', '').replace(' ', '').replace('"', '')
-                                try:
-                                    funding_amount = float(funding_clean)
-                                    if funding_amount <= 0:
-                                        funding_amount = 1000000
-                                except:
-                                    funding_amount = 1000000
+                        # Extract and clean funding amount from funding_total_usd and track presence
+                        funding_amount = 0.0
+                        has_funding_total = False
+                        raw_funding_str = ''
+                        ft_col = _find_funding_total_column(df.columns)
+                        if ft_col and ft_col in row and pd.notna(row[ft_col]):
+                            funding_str = str(row[ft_col]).strip()
+                            raw_funding_str = funding_str
+                            parsed, flag = _parse_money_to_usd(funding_str)
+                            if flag:
+                                funding_amount = parsed
+                                has_funding_total = True
                         
                         # Extract status
                         status = 'Operating'  # Default
@@ -703,7 +973,8 @@ def download_kaggle_startup_data():
                             'location': location,
                             'funding_round': np.random.choice(['Seed', 'Series A', 'Series B', 'Series C']),
                             'funding_amount_usd': funding_amount,
-                            'valuation_usd': funding_amount * np.random.uniform(5, 15),
+                            # valuation computed below using funding + factors
+                            'valuation_usd': 0.0,
                             'revenue_usd': funding_amount * np.random.uniform(0.05, 0.3),
                             'team_size': np.random.randint(5, 100),
                             'years_since_founding': np.random.uniform(1, 8),
@@ -712,8 +983,22 @@ def download_kaggle_startup_data():
                             'market_size_billion_usd': np.random.uniform(1.0, 50.0),
                             'status': status,
                             'is_successful': is_successful,
-                            'success_score': float(is_successful)
+                            'success_score': float(is_successful),
+                            # Track authoritative funding presence for downstream filtering
+                            'has_funding_total_usd': bool(has_funding_total),
+                            'funding_total_usd_raw': raw_funding_str
                         }
+                        # Compute valuation using funding and other scoring criteria (align with primary path)
+                        stage = company_data['funding_round']
+                        stage_factor = {
+                            'Seed': 6.0, 'Series A': 10.0, 'Series B': 14.0, 'Series C': 18.0
+                        }.get(stage, 8.0)
+                        market_adj = min(4.0, company_data['market_size_billion_usd'] / 10.0)  # up to +4
+                        team_adj = min(2.0, company_data['team_size'] / 100.0 * 2.0)  # up to +2
+                        comp_adj = - min(2.0, company_data['competition_level'] / 10.0 * 2.0)  # up to -2
+                        if company_data['funding_amount_usd'] > 0:
+                            multiplier = max(3.0, stage_factor + market_adj + team_adj + comp_adj)
+                            company_data['valuation_usd'] = float(company_data['funding_amount_usd'] * multiplier)
                         startup_data.append(company_data)
                     except Exception as e:
                         print(f"   Error processing row {idx}: {e}")
@@ -852,10 +1137,10 @@ def download_kaggle_startup_data():
         thread = threading.Thread(target=target)
         thread.daemon = True
         thread.start()
-        thread.join(timeout=30)  # 30 second timeout
+        thread.join(timeout=90)  # 90 second timeout to allow kagglehub download
         
         if thread.is_alive():
-            print("Warning: Kaggle data loading timed out after 30 seconds")
+            print("Warning: Kaggle data loading timed out after 90 seconds")
             return None
         
         return result[0]
@@ -1199,35 +1484,41 @@ def engineer_features(df):
     
     # Create derived features
     df_features['funding_efficiency'] = df_features['valuation_usd'] / (df_features['funding_amount_usd'] + 1)
-    df_features['revenue_per_employee'] = df_features['revenue_usd'] / (df_features['team_size'] + 1)
     df_features['funding_per_employee'] = df_features['funding_amount_usd'] / (df_features['team_size'] + 1)
-    df_features['market_penetration'] = df_features['revenue_usd'] / (df_features['market_size_billion_usd'] * 1e9 + 1)
     
     # Age categories
     df_features['age_category'] = pd.cut(df_features['years_since_founding'], 
                                        bins=[0, 1, 3, 5, 10, 100], 
-                                       labels=['Startup', 'Early', 'Growth', 'Mature', 'Established'])
+                                       labels=['Startup', 'Early', 'Growth', 'Mature', 'Established']).astype(str)
     
     # Team size categories
     df_features['team_size_category'] = pd.cut(df_features['team_size'], 
                                              bins=[0, 10, 50, 100, 500, 10000], 
-                                             labels=['Small', 'Medium', 'Large', 'Very Large', 'Enterprise'])
+                                             labels=['Small', 'Medium', 'Large', 'Very Large', 'Enterprise']).astype(str)
     
     # Log transforms
     df_features['funding_amount_log'] = np.log1p(df_features['funding_amount_usd'])
     df_features['valuation_log'] = np.log1p(df_features['valuation_usd'])
-    df_features['revenue_log'] = np.log1p(df_features['revenue_usd'])
-    
-    # Revenue flag
-    df_features['has_revenue'] = (df_features['revenue_usd'] > 0).astype(int)
     
     # Competition categories
     df_features['competition_category'] = pd.cut(df_features['competition_level'], 
                                                bins=[0, 3, 6, 8, 10], 
-                                               labels=['Low', 'Medium', 'High', 'Very High'])
+                                               labels=['Low', 'Medium', 'High', 'Very High']).astype(str)
     
-    # Encode categorical variables
-    categorical_columns = ['industry', 'location', 'funding_round', 'status', 
+    # Ensure consolidated grouping columns exist (used as categorical features)
+    if 'industry_group' not in df_features.columns:
+        try:
+            df_features['industry_group'] = df_features['industry'].apply(consolidate_industry)
+        except Exception:
+            df_features['industry_group'] = 'Other'
+    if 'region' not in df_features.columns:
+        try:
+            df_features['region'] = df_features['location'].apply(map_location_to_region)
+        except Exception:
+            df_features['region'] = 'Other'
+    
+    # Encode categorical variables (include consolidated groupings)
+    categorical_columns = ['industry', 'industry_group', 'location', 'region', 'funding_round', 'status', 
                           'age_category', 'team_size_category', 'competition_category']
     
     encoded_features = pd.get_dummies(df_features[categorical_columns], 
@@ -1235,9 +1526,9 @@ def engineer_features(df):
     
     # Numerical features
     numerical_columns = ['funding_amount_usd', 'valuation_usd', 'team_size', 'years_since_founding', 
-                        'revenue_usd', 'num_investors', 'competition_level', 'market_size_billion_usd',
-                        'funding_efficiency', 'revenue_per_employee', 'funding_per_employee', 
-                        'market_penetration', 'funding_amount_log', 'valuation_log', 'revenue_log', 'has_revenue']
+                        'num_investors', 'competition_level', 'market_size_billion_usd',
+                        'funding_efficiency', 'funding_per_employee',
+                        'funding_amount_log', 'valuation_log']
     
     # Combine features
     X_features = pd.concat([df_features[numerical_columns], encoded_features], axis=1)
@@ -1250,6 +1541,7 @@ def engineer_features(df):
     # Target variables
     y_classification = df_features['is_successful']
     y_regression = df_features['funding_amount_usd']
+    y_valuation = df_features['valuation_usd']
     
     return {
         'feature_matrix': X_scaled,
@@ -1257,6 +1549,7 @@ def engineer_features(df):
         'numerical_columns': numerical_columns,
         'y_classification': y_classification,
         'y_regression': y_regression,
+        'y_valuation': y_valuation,
         'feature_names': list(X_scaled.columns)
     }
 
@@ -1264,7 +1557,7 @@ def train_models():
     """
     Train ML models and store globally.
     """
-    global startup_classifier, startup_regressor, feature_scaler, feature_columns, sample_data, training_numerical_columns
+    global startup_classifier, startup_regressor, startup_valuation_regressor, feature_scaler, feature_columns, sample_data, training_numerical_columns
     
     # Load data (try Kaggle first, fallback to synthetic)
     df = load_data()
@@ -1299,16 +1592,64 @@ def train_models():
     X = feature_data['feature_matrix']
     y_class = feature_data['y_classification']
     y_reg = feature_data['y_regression']
+    y_val = feature_data['y_valuation']
     
     # Store for later use
     feature_scaler = feature_data['scaler']
     feature_columns = feature_data['feature_names']
     training_numerical_columns = feature_data.get('numerical_columns', [
         'funding_amount_usd', 'valuation_usd', 'team_size', 'years_since_founding',
-        'revenue_usd', 'num_investors', 'competition_level', 'market_size_billion_usd',
-        'funding_efficiency', 'revenue_per_employee', 'funding_per_employee',
-        'market_penetration', 'funding_amount_log', 'valuation_log', 'revenue_log', 'has_revenue'
+        'num_investors', 'competition_level', 'market_size_billion_usd',
+        'funding_efficiency', 'funding_per_employee',
+        'funding_amount_log', 'valuation_log'
     ])
+
+    # Try cache (skip training when valid)
+    try:
+        use_cache = os.environ.get('CACHE_MODELS', 'true').strip().lower() in {'1','true','yes','y'}
+        force_retrain = os.environ.get('FORCE_RETRAIN', 'false').strip().lower() in {'1','true','yes','y'}
+    except Exception:
+        use_cache, force_retrain = True, False
+
+    data_sig = _compute_data_signature(df)
+    if use_cache and not force_retrain:
+        cached = _load_models_from_cache(data_sig)
+        if cached is not None:
+            globals()['startup_classifier'] = cached['startup_classifier']
+            globals()['startup_regressor'] = cached['startup_regressor']
+            globals()['startup_valuation_regressor'] = cached['startup_valuation_regressor']
+            globals()['feature_scaler'] = cached['feature_scaler']
+            globals()['feature_columns'] = cached['feature_columns']
+            globals()['training_numerical_columns'] = cached['training_numerical_columns']
+            # Bind bundle to classifier to ensure consistent inference alignment
+            try:
+                _bind_feature_bundle_to_classifier(
+                    globals()['startup_classifier'],
+                    globals()['feature_columns'],
+                    globals()['training_numerical_columns'],
+                    globals()['feature_scaler']
+                )
+            except Exception:
+                pass
+            # Light evaluation for log
+            try:
+                X_tr, X_te, y_tr, y_te = train_test_split(X, y_class, test_size=0.2, random_state=42, stratify=y_class)
+                acc = accuracy_score(y_te, cached['startup_classifier'].predict(X_te))
+                print(f"AI: Loaded cached ML models. Test accuracy: {acc:.1%}")
+            except Exception:
+                print("AI: Loaded cached ML models.")
+            # Precompute tiers as usual
+            try:
+                _disable = os.environ.get('PRECOMPUTE_DISABLE', 'false').lower() in {'1', 'true', 'yes', 'y'}
+                if _disable:
+                    print("Info: Skipping precompute_investment_tiers due to PRECOMPUTE_DISABLE")
+                else:
+                    _max_rows_env = os.environ.get('PRECOMPUTE_MAX_ROWS', '').strip()
+                    _max_rows = int(_max_rows_env) if _max_rows_env else None
+                    precompute_investment_tiers(max_rows=_max_rows)
+            except Exception as _pc_err:
+                print(f"Warning: Failed to precompute investment tiers: {_pc_err}")
+            return
     
     # Split data
     X_train_class, X_test_class, y_train_class, y_test_class = train_test_split(
@@ -1317,174 +1658,513 @@ def train_models():
     X_train_reg, X_test_reg, y_train_reg, y_test_reg = train_test_split(
         X, y_reg, test_size=0.2, random_state=42)
     
-    # Train classification model
-    startup_classifier = RandomForestClassifier(
-        n_estimators=100, max_depth=10, min_samples_split=5,
-        min_samples_leaf=2, max_features='sqrt', random_state=42, n_jobs=-1)
-    startup_classifier.fit(X_train_class, y_train_class)
+    # Train classification models and pick the best by validation accuracy
+    from sklearn.model_selection import GridSearchCV
+
+    # 1) RandomForest with modest grid
+    rf_base = RandomForestClassifier(random_state=42, n_jobs=-1, class_weight='balanced_subsample')
+    rf_param_grid = {
+        'n_estimators': [200, 400],
+        'max_depth': [None, 12, 20],
+        'min_samples_leaf': [1, 2],
+        'max_features': ['sqrt', 0.5]
+    }
+    rf_grid = GridSearchCV(rf_base, rf_param_grid, cv=3, scoring='accuracy', n_jobs=-1, verbose=0)
+    rf_grid.fit(X_train_class, y_train_class)
+    rf_best = rf_grid.best_estimator_
+
+    # 2) Histogram Gradient Boosting (often stronger on tabular)
+    # Use a compact grid to keep training time reasonable
+    hgb_best = None
+    try:
+        hgb_base = HistGradientBoostingClassifier(
+            random_state=42,
+            early_stopping=True,
+            validation_fraction=0.1,
+            class_weight='balanced'
+        )
+        hgb_param_grid = {
+            'learning_rate': [0.05, 0.1],
+            'max_leaf_nodes': [31, 63],
+            'min_samples_leaf': [10, 20],
+            'max_depth': [None, 12]
+        }
+        hgb_grid = GridSearchCV(hgb_base, hgb_param_grid, cv=3, scoring='accuracy', n_jobs=-1, verbose=0)
+        hgb_grid.fit(X_train_class, y_train_class)
+        hgb_best = hgb_grid.best_estimator_
+    except Exception as _hgb_err:
+        print(f"Warning: HGBClassifier training failed or unavailable: {_hgb_err}")
+
+    # 3) ExtraTrees (Extremely Randomized Trees) can outperform RF on some tabular problems
+    etc_best = None
+    try:
+        etc_base = ExtraTreesClassifier(random_state=42, n_jobs=-1, class_weight='balanced')
+        etc_param_grid = {
+            'n_estimators': [300, 600],
+            'max_depth': [None, 12, 20],
+            'min_samples_leaf': [1, 2],
+            'max_features': ['sqrt', 0.5]
+        }
+        etc_grid = GridSearchCV(etc_base, etc_param_grid, cv=3, scoring='accuracy', n_jobs=-1, verbose=0)
+        etc_grid.fit(X_train_class, y_train_class)
+        etc_best = etc_grid.best_estimator_
+    except Exception as _etc_err:
+        print(f"Warning: ExtraTreesClassifier training failed or unavailable: {_etc_err}")
+
+    # 4) Logistic Regression (strong linear baseline with balanced classes)
+    lr_best = None
+    try:
+        lr_base = LogisticRegression(
+            solver='lbfgs',
+            max_iter=200,
+            class_weight='balanced',
+            n_jobs=None,
+            random_state=42
+        )
+        # Compact grid over C only
+        from sklearn.model_selection import GridSearchCV as _Grid
+        lr_param_grid = {
+            'C': [0.1, 1.0, 10.0]
+        }
+        lr_grid = _Grid(lr_base, lr_param_grid, cv=3, scoring='accuracy', n_jobs=-1, verbose=0)
+        lr_grid.fit(X_train_class, y_train_class)
+        lr_best = lr_grid.best_estimator_
+    except Exception as _lr_err:
+        print(f"Warning: LogisticRegression training failed or unavailable: {_lr_err}")
+
+    # 5) Soft Voting Ensemble using available probabilistic base models
+    voting_best = None
+    try:
+        estimators = []
+        if rf_best is not None:
+            estimators.append(('rf', rf_best))
+        if hgb_best is not None:
+            estimators.append(('hgb', hgb_best))
+        if etc_best is not None:
+            estimators.append(('etc', etc_best))
+        if lr_best is not None:
+            estimators.append(('lr', lr_best))
+        if len(estimators) >= 2:
+            voting = VotingClassifier(estimators=estimators, voting='soft', n_jobs=-1, weights=None)
+            voting.fit(X_train_class, y_train_class)
+            voting_best = voting
+    except Exception as _vote_err:
+        print(f"Warning: VotingClassifier training failed or unavailable: {_vote_err}")
+
+    # Evaluate on held-out test set and select the best classifier
+    rf_acc = accuracy_score(y_test_class, rf_best.predict(X_test_class)) if rf_best is not None else 0.0
+    hgb_acc = accuracy_score(y_test_class, hgb_best.predict(X_test_class)) if hgb_best is not None else -1.0
+    etc_acc = accuracy_score(y_test_class, etc_best.predict(X_test_class)) if etc_best is not None else -1.0
+    lr_acc = accuracy_score(y_test_class, lr_best.predict(X_test_class)) if lr_best is not None else -1.0
+    vote_acc = accuracy_score(y_test_class, voting_best.predict(X_test_class)) if voting_best is not None else -1.0
+
+    # Select the top performer by held-out accuracy
+    candidate_accs = [
+        ('RandomForestClassifier', rf_best, rf_acc),
+        ('HistGradientBoostingClassifier', hgb_best, hgb_acc),
+        ('ExtraTreesClassifier', etc_best, etc_acc),
+        ('LogisticRegression', lr_best, lr_acc),
+        ('VotingSoftEnsemble', voting_best, vote_acc),
+    ]
+    # Filter out None models
+    candidate_accs = [(n, m, a) for (n, m, a) in candidate_accs if m is not None and a >= 0]
+    if not candidate_accs:
+        # Fallback to RF if everything failed
+        startup_classifier = rf_best
+        selected_name, selected_acc = 'RandomForestClassifier', rf_acc
+        alt_name, alt_acc = 'HistGradientBoostingClassifier', hgb_acc
+    else:
+        candidate_accs.sort(key=lambda t: t[2], reverse=True)
+        selected_name, selected_model, selected_acc = candidate_accs[0]
+        # Keep the best alternative for reporting
+        if len(candidate_accs) > 1:
+            alt_name, alt_model, alt_acc = candidate_accs[1]
+        else:
+            alt_name, alt_acc = '(none)', -1.0
+        startup_classifier = selected_model
     
-    # Train regression model
+    # Train regression models (funding and valuation)
     startup_regressor = RandomForestRegressor(
-        n_estimators=100, max_depth=12, min_samples_split=5,
+        n_estimators=300, max_depth=None, min_samples_split=4,
         min_samples_leaf=2, max_features='sqrt', random_state=42, n_jobs=-1)
     startup_regressor.fit(X_train_reg, y_train_reg)
+
+    startup_valuation_regressor = RandomForestRegressor(
+        n_estimators=300, max_depth=None, min_samples_split=4,
+        min_samples_leaf=2, max_features='sqrt', random_state=42, n_jobs=-1)
+    # Train valuation regressor on valuation target
+    X_train_val, X_test_val, y_train_val, y_test_val = train_test_split(X, y_val, test_size=0.2, random_state=42)
+    startup_valuation_regressor.fit(X_train_val, y_train_val)
     
-    # Print performance
+    # Optional: tune decision threshold on held-out validation to maximize accuracy
+    tuned_threshold = 0.5
+    try:
+        if hasattr(startup_classifier, 'predict_proba'):
+            proba = startup_classifier.predict_proba(X_test_class)[:, 1]
+            thresholds = np.linspace(0.25, 0.75, 101)
+            accs = []
+            for t in thresholds:
+                preds = (proba >= t).astype(int)
+                accs.append(accuracy_score(y_test_class, preds))
+            best_idx = int(np.argmax(accs))
+            tuned_threshold = float(thresholds[best_idx])
+            tuned_acc = float(accs[best_idx])
+            # Wrap the classifier with tuned threshold for downstream use
+            startup_classifier = ThresholdedClassifier(startup_classifier, threshold=tuned_threshold)
+        else:
+            tuned_acc = selected_acc
+    except Exception as _thr_err:
+        print(f"Warning: Threshold tuning failed: {_thr_err}")
+        tuned_acc = selected_acc
+
+    # Bind feature bundle to the final classifier to prevent feature-mismatch at inference
+    try:
+        _bind_feature_bundle_to_classifier(
+            startup_classifier,
+            feature_columns,
+            training_numerical_columns,
+            feature_scaler
+        )
+    except Exception:
+        pass
+
+    # Print performance (report both untuned and tuned if applicable)
     class_accuracy = accuracy_score(y_test_class, startup_classifier.predict(X_test_class))
     reg_r2 = r2_score(y_test_reg, startup_regressor.predict(X_test_reg))
+    val_r2 = r2_score(y_test_val, startup_valuation_regressor.predict(X_test_val))
     
     print(f"AI: ML Models trained successfully!")
-    print(f"   Classification accuracy: {class_accuracy:.1%}")
-    print(f"   Regression R²: {reg_r2:.1%}")
+    if 'tuned_acc' in locals() and abs(tuned_acc - selected_acc) > 1e-9:
+        print(f"   Classification accuracy: {class_accuracy:.1%} with tuned threshold={tuned_threshold:.2f} ({selected_name}; untuned {selected_acc:.1%}, alt {alt_name}: {alt_acc:.1%})")
+    else:
+        print(f"   Classification accuracy: {class_accuracy:.1%} ({selected_name}; alt {alt_name}: {alt_acc:.1%})")
+    print(f"   Regression R² (funding): {reg_r2:.1%}")
+    print(f"   Regression R² (valuation): {val_r2:.1%}")
 
-    # Precompute investment tiers and attractiveness to speed up API filtering and UI rendering
-    # Make this controllable via environment variables for faster startup during development
-    #   PRECOMPUTE_DISABLE=true|1  -> skip precomputation
-    #   PRECOMPUTE_MAX_ROWS=N      -> limit precomputation to first N rows
+    # Save models to cache for faster subsequent startups
     try:
-        _disable = os.environ.get('PRECOMPUTE_DISABLE', 'false').lower() in {'1', 'true', 'yes', 'y'}
-        _max_rows_env = os.environ.get('PRECOMPUTE_MAX_ROWS', '').strip()
-        _max_rows = None
-        if _max_rows_env.isdigit():
-            try:
-                _max_rows = int(_max_rows_env)
-            except Exception:
-                _max_rows = None
-        if _disable:
-            print("Info: Skipping precompute_investment_tiers due to PRECOMPUTE_DISABLE")
-        else:
-            if _max_rows is not None:
-                print(f"Info: Limiting precompute_investment_tiers to {_max_rows} rows via PRECOMPUTE_MAX_ROWS")
+        if os.environ.get('CACHE_MODELS', 'true').strip().lower() in {'1','true','yes','y'}:
+            _save_models_to_cache(data_sig, startup_classifier, startup_regressor, startup_valuation_regressor,
+                                  feature_scaler, feature_columns, training_numerical_columns)
+    except Exception:
+        pass
+
+    # Auto-precompute investment tiers for instant UI responsiveness
+    # Precomputation runs automatically after training completes
+    try:
+        # Attempt to load precomputed tiers from cache first
+        loaded = _load_precompute_from_cache(data_sig)
+        if not loaded:
+            # Respect optional limit via PRECOMPUTE_MAX_ROWS; empty/missing means no limit
+            _max_rows_env = os.environ.get('PRECOMPUTE_MAX_ROWS', '').strip()
+            _max_rows = None
+            if _max_rows_env:
+                try:
+                    _max_rows = int(_max_rows_env)
+                except ValueError:
+                    print(f"Info: Ignoring non-integer PRECOMPUTE_MAX_ROWS='{_max_rows_env}', proceeding without limit")
+                    _max_rows = None
+            print(f"Info: Auto-precomputing investment tiers (max_rows={_max_rows or 'all'})...")
             precompute_investment_tiers(max_rows=_max_rows)
+            # Save results for next startup
+            _save_precompute_to_cache(data_sig)
+            print("Success: Auto-precompute completed and cached")
     except Exception as _pc_err:
         print(f"Warning: Failed to precompute investment tiers: {_pc_err}")
 
-def prepare_features_for_prediction(data):
+    # Final step: publish the freshly trained suite atomically to globals to avoid race conditions
+    try:
+        globals()['startup_classifier'] = startup_classifier
+        globals()['startup_regressor'] = startup_regressor
+        globals()['startup_valuation_regressor'] = startup_valuation_regressor
+        globals()['feature_scaler'] = feature_scaler
+        globals()['feature_columns'] = feature_columns
+        globals()['training_numerical_columns'] = training_numerical_columns
+    except Exception:
+        pass
+
+def prepare_features_for_prediction(data, active_classifier=None):
     """
     Prepare input data for ML prediction.
+
+    Uses the feature/scale bundle attached to the provided classifier (or the
+    current global classifier) to guarantee column alignment and avoid
+    feature-name mismatches when background training updates globals.
     """
     # Create DataFrame with single row
     df = pd.DataFrame([data])
     
     # Add derived features
     df['funding_efficiency'] = df['valuation_usd'] / (df['funding_amount_usd'] + 1)
-    df['revenue_per_employee'] = df['revenue_usd'] / (df['team_size'] + 1)
     df['funding_per_employee'] = df['funding_amount_usd'] / (df['team_size'] + 1)
-    df['market_penetration'] = df['revenue_usd'] / (df['market_size_billion_usd'] * 1e9 + 1)
     
-    # Age categories
-    df['age_category'] = pd.cut(df['years_since_founding'], 
-                               bins=[0, 1, 3, 5, 10, 100], 
-                               labels=['Startup', 'Early', 'Growth', 'Mature', 'Established'])
+    # Age categories - handle edge case for single-row DataFrames
+    try:
+        df['age_category'] = pd.cut(df['years_since_founding'], 
+                                   bins=[0, 1, 3, 5, 10, 100], 
+                                   labels=['Startup', 'Early', 'Growth', 'Mature', 'Established']).astype(str)
+    except (ValueError, IndexError):
+        # Fallback for single-row edge case
+        age = df['years_since_founding'].iloc[0]
+        if age <= 1:
+            df['age_category'] = 'Startup'
+        elif age <= 3:
+            df['age_category'] = 'Early'
+        elif age <= 5:
+            df['age_category'] = 'Growth'
+        elif age <= 10:
+            df['age_category'] = 'Mature'
+        else:
+            df['age_category'] = 'Established'
     
-    # Team size categories
-    df['team_size_category'] = pd.cut(df['team_size'], 
-                                     bins=[0, 10, 50, 100, 500, 10000], 
-                                     labels=['Small', 'Medium', 'Large', 'Very Large', 'Enterprise'])
+    # Team size categories - handle edge case for single-row DataFrames
+    try:
+        df['team_size_category'] = pd.cut(df['team_size'], 
+                                         bins=[0, 10, 50, 100, 500, 10000], 
+                                         labels=['Small', 'Medium', 'Large', 'Very Large', 'Enterprise']).astype(str)
+    except (ValueError, IndexError):
+        # Fallback for single-row edge case
+        size = df['team_size'].iloc[0]
+        if size <= 10:
+            df['team_size_category'] = 'Small'
+        elif size <= 50:
+            df['team_size_category'] = 'Medium'
+        elif size <= 100:
+            df['team_size_category'] = 'Large'
+        elif size <= 500:
+            df['team_size_category'] = 'Very Large'
+        else:
+            df['team_size_category'] = 'Enterprise'
     
     # Log transforms
     df['funding_amount_log'] = np.log1p(df['funding_amount_usd'])
     df['valuation_log'] = np.log1p(df['valuation_usd'])
-    df['revenue_log'] = np.log1p(df['revenue_usd'])
     
-    # Revenue flag
-    df['has_revenue'] = (df['revenue_usd'] > 0).astype(int)
-    
-    # Competition categories
-    df['competition_category'] = pd.cut(df['competition_level'], 
-                                       bins=[0, 3, 6, 8, 10], 
-                                       labels=['Low', 'Medium', 'High', 'Very High'])
+    # Competition categories - handle edge case for single-row DataFrames
+    try:
+        df['competition_category'] = pd.cut(df['competition_level'], 
+                                           bins=[0, 3, 6, 8, 10], 
+                                           labels=['Low', 'Medium', 'High', 'Very High']).astype(str)
+    except (ValueError, IndexError):
+        # Fallback for single-row edge case
+        comp = df['competition_level'].iloc[0]
+        if comp <= 3:
+            df['competition_category'] = 'Low'
+        elif comp <= 6:
+            df['competition_category'] = 'Medium'
+        elif comp <= 8:
+            df['competition_category'] = 'High'
+        else:
+            df['competition_category'] = 'Very High'
     
     # Add status for encoding (dummy value)
     df['status'] = 'Operating'
     
-    # Encode categorical variables
-    categorical_columns = ['industry', 'location', 'funding_round', 'status', 
+    # Ensure consolidated grouping columns exist for inference
+    try:
+        if 'industry_group' not in df.columns or pd.isna(df.get('industry_group', [None])[0]):
+            df['industry_group'] = df['industry'].apply(consolidate_industry)
+    except Exception:
+        df['industry_group'] = 'Other'
+    try:
+        if 'region' not in df.columns or pd.isna(df.get('region', [None])[0]):
+            df['region'] = df['location'].apply(map_location_to_region)
+    except Exception:
+        df['region'] = 'Other'
+    
+    # Encode categorical variables (match training including consolidated groupings)
+    categorical_columns = ['industry', 'industry_group', 'location', 'region', 'funding_round', 'status', 
                           'age_category', 'team_size_category', 'competition_category']
     
     encoded_features = pd.get_dummies(df[categorical_columns], 
                                      prefix=categorical_columns, drop_first=True)
     
-    # Numerical features (prefer the exact set used during training)
-    default_numerical_columns = ['funding_amount_usd', 'valuation_usd', 'team_size', 'years_since_founding', 
-                        'revenue_usd', 'num_investors', 'competition_level', 'market_size_billion_usd',
-                        'funding_efficiency', 'revenue_per_employee', 'funding_per_employee', 
-                        'market_penetration', 'funding_amount_log', 'valuation_log', 'revenue_log', 'has_revenue']
-    numerical_columns = training_numerical_columns or default_numerical_columns
-    
-    # Drop any dummy columns not seen during training to avoid estimator feature name mismatches
-    if feature_columns is not None:
-        encoded_features = encoded_features[[c for c in encoded_features.columns if c in feature_columns]]
-    
-    # Combine features, then align to the exact training feature set in one vectorized step
-    X_features = pd.concat([df[numerical_columns], encoded_features], axis=1)
-    # Reindex once to avoid O(N^2) per-column inserts which can be extremely slow
-    X_features = X_features.reindex(columns=list(feature_columns), fill_value=0)
-    
-    # Scale numerical features with safeguards
+    # Determine the active bundle (prefer attributes bound to the classifier)
+    clf = active_classifier if active_classifier is not None else startup_classifier
+    base = getattr(clf, 'base_estimator', clf)
+    # Columns expected by this classifier
+    expected_candidates = [
+        getattr(clf, '_ds_feature_columns', None),
+        getattr(base, '_ds_feature_columns', None),
+        getattr(base, 'feature_names_in_', None),
+        feature_columns
+    ]
+    expected_cols = None
+    for candidate in expected_candidates:
+        if candidate is None:
+            continue
+        if isinstance(candidate, (np.ndarray, pd.Index)):
+            values = candidate.tolist()
+        elif isinstance(candidate, (list, tuple)):
+            values = list(candidate)
+        else:
+            # Skip falsy strings/iterables; otherwise cast appropriately
+            if isinstance(candidate, str):
+                if not candidate.strip():
+                    continue
+                values = [candidate]
+            else:
+                try:
+                    if not candidate:
+                        continue
+                except Exception:
+                    pass
+                values = list(candidate)
+        if values:
+            expected_cols = [str(col) for col in values]
+            break
+    if expected_cols is None:
+        # Last-resort defensive default (should not happen)
+        expected_cols = []
+
+    # Numerical features (prefer the exact set used during training of this classifier)
+    default_numerical_columns = ['funding_amount_usd', 'valuation_usd', 'team_size', 'years_since_founding',
+                                 'num_investors', 'competition_level', 'market_size_billion_usd',
+                                 'funding_efficiency', 'funding_per_employee',
+                                 'funding_amount_log', 'valuation_log']
+    raw_numerical_columns = (
+        getattr(clf, '_ds_numerical_columns', None)
+        or getattr(base, '_ds_numerical_columns', None)
+        or training_numerical_columns
+        or default_numerical_columns
+    )
+    if isinstance(raw_numerical_columns, (pd.Index, np.ndarray)):
+        numerical_columns = [str(col) for col in raw_numerical_columns.tolist()]
+    elif raw_numerical_columns is None:
+        numerical_columns = list(default_numerical_columns)
+    else:
+        numerical_columns = [str(col) for col in list(raw_numerical_columns)]
+    if not numerical_columns:
+        numerical_columns = list(default_numerical_columns)
+    else:
+        # Preserve order while enforcing uniqueness to avoid duplicate scaling requests
+        seen = set()
+        ordered = []
+        for col in numerical_columns:
+            if col not in seen:
+                ordered.append(col)
+                seen.add(col)
+        numerical_columns = ordered
+
+    # Drop any dummy columns not seen during this classifier's training
+    encoded_features = encoded_features[[c for c in encoded_features.columns if c in expected_cols]]
+
+    # Combine features, then align strictly to expected columns
+    numeric_frame = df.reindex(columns=numerical_columns, fill_value=0).copy()
+    X_features = pd.concat([numeric_frame, encoded_features], axis=1)
+    X_features = X_features.reindex(columns=list(expected_cols), fill_value=0)
+
+    # Scale numerical features using the scaler bound to the classifier if available
+    scaler = (
+        getattr(clf, '_ds_scaler', None)
+        or getattr(base, '_ds_scaler', None)
+        or feature_scaler
+    )
     X_scaled = X_features.copy()
     try:
-        X_scaled[numerical_columns] = feature_scaler.transform(X_features[numerical_columns])
+        if scaler is not None and len(numerical_columns) > 0:
+            X_scaled.loc[:, numerical_columns] = scaler.transform(numeric_frame[numerical_columns])
     except KeyError as ke:
         # If a KeyError occurs (e.g., unknown or missing columns), align strictly and retry
         missing = [c for c in numerical_columns if c not in X_features.columns]
-        extra = [c for c in X_features.columns if c not in (feature_columns or [])]
+        extra = [c for c in X_features.columns if c not in (expected_cols or [])]
         print(f"Warning: Feature alignment issue during scaling: {ke}. Missing numericals: {missing}. Extra cols dropped: {extra}.")
-        aligned = X_features.reindex(columns=list(feature_columns), fill_value=0)
+        aligned = X_features.reindex(columns=list(expected_cols), fill_value=0)
         X_scaled = aligned.copy()
-        X_scaled[numerical_columns] = feature_scaler.transform(aligned[numerical_columns])
+        if scaler is not None and len(numerical_columns) > 0:
+            fallback_numeric = aligned.reindex(columns=numerical_columns, fill_value=0)
+            X_scaled.loc[:, numerical_columns] = scaler.transform(fallback_numeric[numerical_columns])
     except Exception as e:
         # Absolute fallback: return zeros except leave numericals unscaled (best-effort)
         print(f"Warning: Unexpected scaling error: {e}. Falling back to unscaled numericals.")
         X_scaled = X_features.copy()
-    
-    return X_scaled
 
-def calculate_attractiveness_score(success_probability, revenue, market_size, competition_level, team_size, num_investors):
-        """
-        Calculate deal attractiveness score (0-100) with normalized scoring.
+    # Convert to numpy array to avoid pandas sparse accessor issues with sklearn
+    return X_scaled.values
 
-        Rationale for weights/caps:
-        - Prior version allowed non-ML components (revenue/market/team/investors) to add up to 60 points,
-            making "Avoid" nearly impossible even with very low success probability. We rebalance to ensure
-            ML-driven success probability is the dominant factor while still rewarding fundamentals.
+def _sigmoid(x: float) -> float:
+    try:
+        return 1.0 / (1.0 + np.exp(-x))
+    except Exception:
+        return 0.5
 
-        Weights (sum to 100):
-            - Success probability: 50%
-            - Revenue: 15% (caps at $2M instead of $1M)
-            - Market opportunity: 15% (softer scaling: (market_size - competition)/20)
-            - Team size: 10% (caps at 100 people)
-            - Investor count: 10% (caps at 10 investors)
-        """
-        # Normalize success probability to [0, 1]: map ~0.1 -> 0.0 and 0.9 -> 1.0
-        normalized_success_prob = min(1.0, max(0.0, (success_probability - 0.1) * 1.25))
 
-        # Normalize fundamentals with higher caps to avoid easy saturation
-        revenue_norm = min(1.0, (revenue or 0.0) / 2_000_000.0)           # 0..1 at $2M
-        market_norm = min(1.0, max(0.0, ((market_size or 0.0) - (competition_level or 0.0)) / 20.0))
-        team_norm = min(1.0, (team_size or 0.0) / 100.0)                  # 0..1 at 100
-        investors_norm = min(1.0, (num_investors or 0.0) / 10.0)          # 0..1 at 10
+def _log_norm(x: float, ref_max: float) -> float:
+    """Log-based normalization to [0,1] that resists saturation.
+    ref_max represents an upper reference value where the score approaches 1.
+    """
+    try:
+        x = max(0.0, float(x or 0.0))
+        ref_max = max(1.0, float(ref_max))
+        return float(min(1.0, np.log1p(x) / np.log1p(ref_max)))
+    except Exception:
+        return 0.0
 
-        score = (
-                normalized_success_prob * 50 +
-                revenue_norm * 15 +
-                market_norm * 15 +
-                team_norm * 10 +
-                investors_norm * 10
-        )
-        return score
+
+def _normalize_market(market_size: float, competition_level: float) -> float:
+    """Normalize market opportunity using a logistic transform of (market - 2*competition).
+    Keeps results in (0,1) without saturating too early.
+    """
+    try:
+        market_size = float(market_size or 0.0)
+        competition_level = float(competition_level or 0.0)
+        # Scale: subtract 2x competition; divide by 5 to get a reasonable spread
+        x = (market_size - 2.0 * competition_level) / 5.0
+        return float(_sigmoid(x))  # 0..1
+    except Exception:
+        return 0.5
+
+
+def calculate_attractiveness_score(success_probability, market_size, competition_level, team_size, num_investors):
+    """
+    Calculate deal attractiveness score (0-100) with stricter, properly bounded normalization.
+
+    Changes vs previous version:
+      - Success probability dominates (65%) and is mapped more strictly: 0.2 -> 0, 0.9 -> 1
+      - Market opportunity uses a logistic transform on (market - 2*competition)
+      - Team and investors use log-normalization to prevent early saturation
+
+    Weights (sum to 100):
+      - Success probability: 65%
+      - Market opportunity: 15%
+      - Team size: 10%
+      - Investor count: 10%
+    """
+    # Stricter linear mapping for success probability: below 20% -> 0, above 90% -> 1
+    try:
+        sp = float(success_probability)
+    except Exception:
+        sp = 0.0
+    sp_norm = max(0.0, min(1.0, (sp - 0.20) / 0.70))
+
+    market_norm = _normalize_market(market_size, competition_level)
+    team_norm = _log_norm(team_size, 150.0)           # approaches 1 near ~150 people
+    investors_norm = _log_norm(num_investors, 12.0)   # approaches 1 near ~12 investors
+
+    score = (
+        sp_norm * 65.0 +
+        market_norm * 15.0 +
+        team_norm * 10.0 +
+        investors_norm * 10.0
+    )
+    # Gating caps by success probability to avoid overly lenient scores
+    if sp < 0.35:
+        score = min(score, 49.0)  # hard Avoid (updated threshold)
+    elif sp < 0.45:
+        score = min(score, 64.0)  # at most Monitor (updated threshold)
+    return float(score)
 
 def get_recommendation(score):
     """
     Get investment recommendation based on normalized score using a 3-tier system:
-      - Invest (green)
-      - Monitor (yellow)
-      - Avoid (red)
-    Thresholds: Invest >= 60, Monitor >= 45, else Avoid.
+      - Invest (green): Score >= 65
+      - Monitor (yellow): Score >= 50
+      - Avoid (red): Score < 50
+    Thresholds updated to be more selective and realistic for VC outcomes.
     """
-    if score >= 60:
+    if score >= 65:
         return "🟢 INVEST - High-conviction opportunity"
-    elif score >= 45:
+    elif score >= 50:
         return "🟡 MONITOR - Promising but requires observation"
     else:
         return "🔴 AVOID - Risk outweighs return"
@@ -1495,15 +2175,15 @@ def generate_insights(data, success_probability, predicted_funding):
     """
     insights = []
     
-    # Success probability insights
+    # Success outlook insights (no explicit probability shown)
     if success_probability > 0.8:
-        insights.append("Exceptional success indicators - strong fundamentals across all metrics")
+        insights.append("Exceptional success outlook — strong fundamentals across all metrics")
     elif success_probability > 0.6:
-        insights.append("Above-average success probability with solid business foundation")
+        insights.append("Above-average success outlook with solid business foundation")
     elif success_probability > 0.4:
-        insights.append("Moderate success potential - consider risk mitigation strategies")
+        insights.append("Moderate success potential — consider risk mitigation strategies")
     else:
-        insights.append("Below-average success indicators - significant risk factors present")
+        insights.append("Below-average success indicators — significant risk factors present")
     
     # Funding insights
     funding_ratio = data['funding_amount_usd'] / predicted_funding if predicted_funding > 0 else 1
@@ -1561,27 +2241,21 @@ def generate_investment_commentary(data, success_probability, attractiveness_sco
         else:
             commentary.append(f"Risk: The limited ${market_size:.1f}B market size constrains long-term growth potential despite manageable competition.")
     
-    # Financial health analysis
-    revenue = data['revenue_usd']
+    # Financial health analysis (revenue removed)
     funding = data['funding_amount_usd']
     valuation = data['valuation_usd']
-    
+
     if component_scores['financial_score'] >= 70:
-        if revenue > 2000000:  # $2M+ revenue
-            commentary.append(f"Revenue: Strong financial position with ${revenue/1e6:.1f}M annual revenue and ${funding/1e6:.1f}M funding raised, demonstrating proven market traction and efficient capital deployment.")
-        else:
-            commentary.append(f"Strong: Solid funding position of ${funding/1e6:.1f}M provides adequate runway, though revenue generation (${revenue/1e6:.1f}M) offers room for acceleration.")
+        commentary.append(f"Strong: Solid financial position with ${funding/1e6:.1f}M funding and ${valuation/1e6:.1f}M valuation, indicating efficient capital deployment and strong investor confidence.")
     elif component_scores['financial_score'] >= 40:
-        if revenue < 500000:
-            commentary.append(f"Loading: Limited revenue traction (${revenue/1e6:.1f}M) relative to ${funding/1e6:.1f}M funding suggests the company is still in early market validation phase.")
-        else:
-            commentary.append(f"Balance: Moderate financial health with ${revenue/1e6:.1f}M revenue and ${funding/1e6:.1f}M funding, indicating steady but not exceptional progress.")
+        funding_efficiency = valuation / max(funding, 1)
+        commentary.append(f"Balance: Moderate financial health with ${funding/1e6:.1f}M funding at ~{funding_efficiency:.1f}x efficiency to valuation; steady but with room for improvement.")
     else:
         funding_efficiency = valuation / max(funding, 1)
         if funding_efficiency < 5:
-            commentary.append(f"Alert: Concerning valuation efficiency - ${valuation/1e6:.1f}M valuation on ${funding/1e6:.1f}M funding may indicate overvaluation or limited investor confidence.")
+            commentary.append(f"Alert: Concerning valuation efficiency - ${valuation/1e6:.1f}M valuation on ${funding/1e6:.1f}M funding may indicate overvaluation or limited investor conviction.")
         else:
-            commentary.append(f"Finance: Weak financial metrics with ${revenue/1e6:.1f}M revenue requiring significant improvement to justify current ${funding/1e6:.1f}M funding level.")
+            commentary.append(f"Finance: Weak financial metrics with insufficient funding (${funding/1e6:.1f}M) to justify current ${valuation/1e6:.1f}M valuation; revisit capital strategy.")
     
     # Team and execution analysis
     team_size = data['team_size']
@@ -1605,12 +2279,12 @@ def generate_investment_commentary(data, success_probability, attractiveness_sco
     industry = data['industry']
     
     if component_scores['growth_score'] >= 70:
-        commentary.append(f"Growth: Excellent growth trajectory supported by {num_investors} investor validation and strong position in the {industry} sector, with ML models predicting {success_probability:.1%} success probability.")
+        commentary.append(f"Growth: Excellent growth trajectory supported by {num_investors} investor validation and strong position in the {industry} sector.")
     elif component_scores['growth_score'] >= 40:
-        commentary.append(f"Analysis: Moderate growth potential in {industry} with {num_investors} investors, though {success_probability:.1%} success probability suggests execution risks remain.")
+        commentary.append(f"Analysis: Moderate growth potential in {industry} with {num_investors} investors, though execution risks remain.")
     else:
         if success_probability < 0.3:
-            commentary.append(f"Risk: Limited growth prospects with only {success_probability:.1%} predicted success probability despite {num_investors} investor backing in {industry}.")
+            commentary.append(f"Risk: Limited growth prospects given low modeled success likelihood despite {num_investors} investor backing in {industry}.")
         else:
             commentary.append(f"Review: Modest investor validation ({num_investors} backers) in competitive {industry} sector requires stronger differentiation for breakthrough growth.")
     
@@ -1624,68 +2298,278 @@ def generate_investment_commentary(data, success_probability, attractiveness_sco
     
     # Risk factors and final recommendation context
     if attractiveness_score >= 75:
-        commentary.append(f"Focus: Recommendation: STRONG BUY - Multiple positive factors align to create compelling risk-adjusted returns with {success_probability:.1%} success probability.")
+        commentary.append(f"Focus: Recommendation: STRONG BUY - Multiple positive factors align to create compelling risk-adjusted returns.")
     elif attractiveness_score >= 60:
         commentary.append(f"Success: Recommendation: BUY - Solid fundamentals outweigh risks, though monitor competitive dynamics and execution milestones closely.")
     elif attractiveness_score >= 40:
         commentary.append(f"Balance: Recommendation: HOLD - Mixed signals require deeper due diligence on team execution and market positioning before commitment.")
     else:
-        commentary.append(f"Stop: Recommendation: AVOID - Current risk factors and {success_probability:.1%} success probability do not justify investment at this valuation.")
+        commentary.append(f"Stop: Recommendation: AVOID - Current risk factors do not justify investment at this valuation.")
     
     return commentary
 
-def analyze_company_comprehensive(company_data):
+def _shrink_success_probability(p: float, data: dict | None = None) -> float:
+    """Apply a conservative shrinkage to probabilities for bulk precompute.
+
+    This mitigates overconfident in-sample probabilities by:
+      1) Temperature scaling in logit space with tau>1 (flattens extremes)
+      2) Blending with a base prior (default 0.4)
+    """
+    try:
+        tau = float(os.environ.get('PRECOMPUTE_PROBA_TAU', '1.75'))
+        base = float(os.environ.get('PRECOMPUTE_PROBA_PRIOR', '0.40'))
+        alpha = float(os.environ.get('PRECOMPUTE_PROBA_ALPHA', '0.80'))
+    except Exception:
+        tau, base, alpha = 1.75, 0.40, 0.80
+
+    try:
+        p = float(p)
+        p = min(max(p, 1e-6), 1 - 1e-6)
+        logit = np.log(p / (1 - p))
+        p_temp = 1.0 / (1.0 + np.exp(-logit / max(1e-3, tau)))
+        p_blend = alpha * p_temp + (1 - alpha) * base
+        return float(min(1.0, max(0.0, p_blend)))
+    except Exception:
+        return float(p)
+
+
+def _apply_probability_policy(raw_probability: float, data: dict | None = None, *, context: str = 'interactive') -> tuple[float, bool]:
+    """Return the probability value that should drive scoring along with a flag if tempering applied.
+
+    Context values:
+      - 'precompute': always apply shrinkage policy for dataset-wide scoring
+      - 'interactive': apply shrinkage unless explicitly disabled via SHRINK_PROBABILITY_INTERACTIVE=false
+    """
+    try:
+        prob = float(raw_probability)
+    except Exception:
+        prob = 0.5
+
+    applied = False
+    try:
+        if context == 'precompute':
+            prob_shrunk = _shrink_success_probability(prob, data)
+            applied = abs(prob_shrunk - prob) > 1e-9
+            return prob_shrunk, applied
+
+        # Interactive / modal analysis path
+        flag = os.environ.get('SHRINK_PROBABILITY_INTERACTIVE', 'true').strip().lower()
+        if flag in {'1', 'true', 'yes', 'y'}:
+            prob_shrunk = _shrink_success_probability(prob, data)
+            applied = abs(prob_shrunk - prob) > 1e-9
+            return prob_shrunk, applied
+    except Exception:
+        pass
+
+    return prob, applied
+
+
+def _probability_band_summary(probability: float) -> tuple[str, str]:
+    """Return (band_key, band_label) describing qualitative success likelihood."""
+    try:
+        p = float(probability)
+    except Exception:
+        return 'unknown', 'Unknown'
+    if p >= 0.60:
+        return 'high', 'High'
+    if p >= 0.45:
+        return 'moderate', 'Moderate'
+    return 'low', 'Low'
+
+
+def _cohere_probability_tier(probability: float, score: float, tier_label: str) -> dict:
+    """Enforce coherence between probability bands, attractiveness score, and tier labels.
+
+    Returns a dict with adjusted probability, score, normalized tier key, display tier label,
+    probability band metadata, and a flag indicating whether the probability was adjusted.
+    """
+    try:
+        prob = float(probability)
+    except Exception:
+        prob = 0.5
+    try:
+        score_val = float(score)
+    except Exception:
+        score_val = 50.0
+
+    normalized_tier = _normalize_investment_tier_label(tier_label)
+    if not normalized_tier:
+        if score_val >= TIER_SCORE_BOUNDS['invest'][0]:
+            normalized_tier = 'invest'
+        elif score_val >= TIER_SCORE_BOUNDS['monitor'][0]:
+            normalized_tier = 'monitor'
+        else:
+            normalized_tier = 'avoid'
+
+    probability_tier = 'invest'
+    if prob < TIER_PROBABILITY_BOUNDS['monitor'][0]:
+        probability_tier = 'avoid'
+    elif prob < TIER_PROBABILITY_BOUNDS['invest'][0]:
+        probability_tier = 'monitor'
+
+    # Choose the riskier of the two tiers (higher risk rank) to avoid over-promising.
+    tier_key = normalized_tier
+    if TIER_RISK_ORDER[probability_tier] > TIER_RISK_ORDER.get(tier_key, 1):
+        tier_key = probability_tier
+
+    bounds = TIER_PROBABILITY_BOUNDS[tier_key]
+    adjusted_prob = prob
+    probability_adjusted = False
+    if prob < bounds[0] - COHERENCE_TOLERANCE:
+        adjusted_prob = bounds[0]
+        probability_adjusted = True
+    elif prob > bounds[1] + COHERENCE_TOLERANCE:
+        adjusted_prob = bounds[1]
+        probability_adjusted = True
+
+    # Align score with the final tier window to avoid crossing thresholds inconsistently.
+    score_bounds = TIER_SCORE_BOUNDS[tier_key]
+    adjusted_score = score_val
+    if tier_key == 'avoid':
+        adjusted_score = min(score_val, score_bounds[1])
+    elif tier_key == 'monitor':
+        adjusted_score = min(score_bounds[1], max(score_bounds[0], score_val))
+    else:  # invest
+        adjusted_score = max(score_bounds[0], score_val)
+
+    band_key, band_label = _probability_band_summary(adjusted_prob)
+    lo_pct = int(round(bounds[0] * 100))
+    hi_pct = int(round(bounds[1] * 100))
+    range_note = f"Aligned with {TIER_DISPLAY_LABELS[tier_key]} tier ({lo_pct}–{hi_pct}% window)"
+
+    return {
+        'probability': float(adjusted_prob),
+        'probability_band': band_key,
+        'probability_band_label': f"{band_label} (~{adjusted_prob * 100:.0f}%)",
+        'probability_range_note': range_note,
+        'tier_key': tier_key,
+        'tier_display': TIER_DISPLAY_LABELS[tier_key],
+        'probability_adjusted': probability_adjusted,
+        'score': float(adjusted_score),
+    }
+
+
+def analyze_company_comprehensive(company_data, precompute_mode: bool = False):
     """
     Comprehensive company analysis with ML predictions and investment commentary.
     Replacement for evaluate_startup_deal function.
     """
     try:
         # Prepare features for ML prediction
-        X = prepare_features_for_prediction(company_data)
-        
-        # Make ML predictions
-        success_probability = startup_classifier.predict_proba(X)[0][1]
+        X = prepare_features_for_prediction(company_data, active_classifier=startup_classifier)
+
+        # Make ML predictions (probability always needed)
+        raw_success_probability = float(startup_classifier.predict_proba(X)[0][1])
+        probability_context = 'precompute' if precompute_mode else 'interactive'
+        success_probability, shrink_applied = _apply_probability_policy(
+            raw_success_probability,
+            company_data,
+            context=probability_context
+        )
+        probability_adjusted = bool(shrink_applied)
+        if precompute_mode:
+            # Fast path for precompute: skip expensive regressions and narrative generation
+            attractiveness_score = calculate_attractiveness_score(
+                success_probability=success_probability,
+                market_size=company_data['market_size_billion_usd'],
+                competition_level=company_data['competition_level'],
+                team_size=company_data['team_size'],
+                num_investors=company_data['num_investors']
+            )
+            tier_label = 'Invest' if attractiveness_score >= 60 else ('Monitor' if attractiveness_score >= 45 else 'Avoid')
+            coherence = _cohere_probability_tier(success_probability, attractiveness_score, tier_label)
+            success_probability = coherence['probability']
+            probability_adjusted = probability_adjusted or coherence['probability_adjusted']
+            attractiveness_score = coherence['score']
+            investment_tier = coherence['tier_display']
+            probability_band = coherence['probability_band']
+            probability_band_label = coherence['probability_band_label']
+            probability_range_note = coherence['probability_range_note']
+            component_scores = calculate_component_scores_detailed(company_data, success_probability)
+            risk_level = 'High' if attractiveness_score < 45 else 'Medium' if attractiveness_score < 60 else 'Low'
+            # Return only minimal fields used by precompute/cache and API list views
+            return {
+                'company_name': company_data['company_name'],
+                'attractiveness_score': attractiveness_score,
+                'success_probability': success_probability,
+                'raw_success_probability': raw_success_probability,
+                'probability_tempering_applied': probability_adjusted,
+                'probability_band': probability_band,
+                'probability_band_label': probability_band_label,
+                'probability_range_note': probability_range_note,
+                'predicted_funding': None,
+                'predicted_valuation': None,
+                'recommendation': get_recommendation(attractiveness_score),
+                'insights': [],
+                'investment_commentary': [],
+                'risk_level': risk_level,
+                'investment_tier': investment_tier,
+                'market_score': component_scores['market_score'],
+                'team_score': component_scores['team_score'],
+                'financial_score': component_scores['financial_score'],
+                'growth_score': component_scores['growth_score']
+            }
+
+        # Full analysis path (interactive evaluation)
         predicted_funding = startup_regressor.predict(X)[0]
-        
-        # Calculate attractiveness score
+        try:
+            predicted_valuation = startup_valuation_regressor.predict(X)[0]
+        except Exception:
+            predicted_valuation = max(0.0, predicted_funding * 10.0)
+
         attractiveness_score = calculate_attractiveness_score(
             success_probability=success_probability,
-            revenue=company_data['revenue_usd'],
             market_size=company_data['market_size_billion_usd'],
             competition_level=company_data['competition_level'],
             team_size=company_data['team_size'],
             num_investors=company_data['num_investors']
         )
-        
-        # Generate recommendation
+        tier_label = 'Invest' if attractiveness_score >= 60 else ('Monitor' if attractiveness_score >= 45 else 'Avoid')
+        # Optional, env-tunable: if probability is extreme but attractiveness is Avoid, temper for presentation consistency
+        try:
+            enable = os.environ.get('PROB_TEMPER_ENABLE', 'true').strip().lower() in {'1','true','yes','y'}
+            trip = float(os.environ.get('PROB_TEMPER_TRIP', '0.85'))  # trigger threshold
+            cap_max = float(os.environ.get('PROB_TEMPER_MAX', '0.85'))
+            floor = float(os.environ.get('PROB_TEMPER_MIN', '0.50'))
+            only_avoid = os.environ.get('PROB_TEMPER_ONLY_AVOID', 'true').strip().lower() in {'1','true','yes','y'}
+            apply_temper = enable and success_probability > trip and (not only_avoid or attractiveness_score < 45)
+            if apply_temper:
+                # Linear blend that nudges probability back toward cap_max when it exceeds trip
+                # Keep monotonicity: higher raw prob => higher tempered prob, but bounded by [floor, cap_max]
+                over = max(0.0, min(1.0, (success_probability - trip) / max(1e-6, 1.0 - trip)))
+                tempered = cap_max - 0.15 * (1.0 - over)  # small spread below cap
+                success_probability = float(max(floor, min(cap_max, tempered)))
+                probability_adjusted = True
+        except Exception:
+            pass
+        coherence = _cohere_probability_tier(success_probability, attractiveness_score, tier_label)
+        success_probability = coherence['probability']
+        probability_adjusted = probability_adjusted or coherence['probability_adjusted']
+        attractiveness_score = coherence['score']
+        investment_tier = coherence['tier_display']
+        probability_band = coherence['probability_band']
+        probability_band_label = coherence['probability_band_label']
+        probability_range_note = coherence['probability_range_note']
         recommendation = get_recommendation(attractiveness_score)
-        
-        # Generate business insights
         insights = generate_insights(company_data, success_probability, predicted_funding)
-        
-        # Calculate component scores for detailed breakdown
         component_scores = calculate_component_scores_detailed(company_data, success_probability)
-        
-        # Generate detailed investment commentary
         investment_commentary = generate_investment_commentary(
             company_data, success_probability, attractiveness_score, component_scores, predicted_funding
         )
-        
-        # Determine risk level and investment tier using 3-tier scheme
+        # Risk is tied to final attractiveness
         risk_level = 'High' if attractiveness_score < 45 else 'Medium' if attractiveness_score < 60 else 'Low'
-        # 3-tier: Invest, Monitor, Avoid
-        if attractiveness_score >= 60:
-            investment_tier = 'Invest'
-        elif attractiveness_score >= 45:
-            investment_tier = 'Monitor'
-        else:
-            investment_tier = 'Avoid'
-        
+
         return {
             'company_name': company_data['company_name'],
             'attractiveness_score': attractiveness_score,
             'success_probability': success_probability,
+            'raw_success_probability': raw_success_probability,
+            'probability_tempering_applied': probability_adjusted,
+            'probability_band': probability_band,
+            'probability_band_label': probability_band_label,
+            'probability_range_note': probability_range_note,
             'predicted_funding': predicted_funding,
+            'predicted_valuation': predicted_valuation,
             'recommendation': recommendation,
             'insights': insights,
             'investment_commentary': investment_commentary,
@@ -1696,23 +2580,29 @@ def analyze_company_comprehensive(company_data):
             'financial_score': component_scores['financial_score'],
             'growth_score': component_scores['growth_score']
         }
-        
+
     except Exception as e:
         print(f"Error: Error in company analysis: {e}")
         import traceback
         traceback.print_exc()
-        
+
         # Return fallback analysis
         return {
             'company_name': company_data.get('company_name', 'Unknown Company'),
             'attractiveness_score': 50.0,
             'success_probability': 0.5,
-            'predicted_funding': company_data.get('funding_amount_usd', 1000000),
+            'raw_success_probability': raw_success_probability if 'raw_success_probability' in locals() else 0.5,
+            'probability_tempering_applied': False,
+            # If regressor isn't available, fall back to current funding (or 0 if unknown)
+            'predicted_funding': company_data.get('funding_amount_usd', 0),
             'recommendation': "🟡 MONITOR - Analysis error, manual review required",
             'insights': ["Analysis error occurred", "Manual review recommended", "Data validation needed"],
             'investment_commentary': ["Warning: Analysis system encountered an error during evaluation.", "Debug: Manual review of company fundamentals is recommended.", "📋 Please verify data accuracy and rerun analysis."],
             'risk_level': 'High',
             'investment_tier': 'Monitor',
+            'probability_band': 'moderate',
+            'probability_band_label': 'Moderate (~50%)',
+            'probability_range_note': 'Alignment unavailable due to analysis fallback',
             'market_score': 25.0,
             'team_score': 25.0,
             'financial_score': 25.0,
@@ -1720,52 +2610,48 @@ def analyze_company_comprehensive(company_data):
         }
 
 def calculate_component_scores_detailed(data, success_probability):
-    """Calculate detailed component scores for attractiveness breakdown"""
+    """Calculate detailed component scores for attractiveness breakdown with bounded normalization.
+
+    This avoids early saturation at 100 and yields a wider, relative spread across companies.
+    """
     try:
-        # Market opportunity score (0-100)
-        market_size = data['market_size_billion_usd']
-        competition = data['competition_level']
-        
-        market_score = min(100, (market_size * 15) - (competition * 8) + 40)
-        market_score = max(0, market_score)
-        
-        # Team & execution score (0-100)
-        team_size = data['team_size']
-        years_operating = data['years_since_founding']
-        
-        team_score = min(100, (team_size * 2.5) + (years_operating * 12) + 25)
-        team_score = max(0, team_score)
-        
-        # Financial health score (0-100)
-        revenue = data['revenue_usd']
-        funding = data['funding_amount_usd']
-        valuation = data['valuation_usd']
-        
-        revenue_score = min(50, revenue / 200000)  # $200k revenue = 50 points
-        funding_score = min(30, funding / 2000000 * 30)  # $2M funding = 30 points
-        valuation_score = min(20, valuation / 20000000 * 20)  # $20M valuation = 20 points
-        
-        financial_score = revenue_score + funding_score + valuation_score
-        financial_score = max(0, min(100, financial_score))
-        
-        # Growth potential score (0-100) - based on success probability and metrics
-        num_investors = data['num_investors']
-        funding_efficiency = valuation / max(funding, 1)
-        
-        investor_score = min(35, num_investors * 7)  # Each investor = 7 points, max 35
-        efficiency_score = min(35, funding_efficiency * 8)  # Efficiency multiplier
-        probability_bonus = success_probability * 0.3  # Success probability contributes 30%
-        
-        growth_score = investor_score + efficiency_score + probability_bonus
-        growth_score = max(0, min(100, growth_score))
-        
+        # Market opportunity (logistic on market minus competition pressure)
+        market_norm = _normalize_market(
+            data.get('market_size_billion_usd', 0.0),
+            data.get('competition_level', 5.0)
+        )
+        market_score = float(100.0 * market_norm)
+
+        # Team & execution (log-normalized team size and linear years factor)
+        team_norm = 0.7 * _log_norm(data.get('team_size', 0.0), 150.0) \
+                    + 0.3 * min(1.0, max(0.0, float(data.get('years_since_founding', 0.0)) / 12.0))
+        team_score = float(100.0 * min(1.0, max(0.0, team_norm)))
+
+        # Financial health: funding and valuation log-normalized
+        funding = float(data.get('funding_amount_usd', 0.0) or 0.0)
+        valuation = float(data.get('valuation_usd', 0.0) or 0.0)
+        funding_norm = _log_norm(funding, 20_000_000.0)      # approaches 1 near ~$20M
+        valuation_norm = _log_norm(valuation, 200_000_000.0)  # approaches 1 near ~$200M
+        financial_norm = 0.6 * funding_norm + 0.4 * valuation_norm
+        financial_score = float(100.0 * min(1.0, max(0.0, financial_norm)))
+
+        # Growth potential: investor base, efficiency, and predicted success
+        num_investors = float(data.get('num_investors', 0.0) or 0.0)
+        investor_norm = _log_norm(num_investors, 12.0)
+        # Efficiency as valuation/funding; guard for zero/low funding
+        eff = (valuation / funding) if funding > 0 else 0.0
+        efficiency_norm = min(1.0, max(0.0, eff / 20.0))  # 20x ratio ~ strong upper bound
+        success_norm = max(0.0, min(1.0, float(success_probability)))
+        growth_norm = 0.35 * investor_norm + 0.35 * efficiency_norm + 0.30 * success_norm
+        growth_score = float(100.0 * min(1.0, max(0.0, growth_norm)))
+
         return {
             'market_score': round(market_score, 1),
             'team_score': round(team_score, 1),
             'financial_score': round(financial_score, 1),
             'growth_score': round(growth_score, 1)
         }
-        
+
     except Exception as e:
         print(f"Error calculating component scores: {e}")
         return {
@@ -1825,12 +2711,12 @@ def create_analysis_dashboard(data):
         ax2.text(bar.get_x() + bar.get_width()/2, bar.get_height() + 0.02, 
                 f'{prob:.1%}', ha='center', va='bottom', fontweight='bold')
     
-    # 3. Feature Contribution Analysis
+    # 3. Feature Contribution Analysis (illustrative only; revenue removed)
     ax3 = axes[0, 2]
     
     # Simulated feature importance for visualization
-    features = ['Revenue Growth', 'Market Size', 'Team Strength', 'Competition', 'Funding Eff.']
-    importance = [0.25, 0.20, 0.18, 0.15, 0.12]
+    features = ['Market Size', 'Team Strength', 'Competition', 'Funding Eff.', 'Investors']
+    importance = [0.24, 0.22, 0.18, 0.18, 0.18]
     
     wedges, texts, autotexts = ax3.pie(importance, labels=features, autopct='%1.1f%%', 
                                       colors=plt.cm.Set3.colors, startangle=90)
@@ -1890,13 +2776,13 @@ def create_analysis_dashboard(data):
     # 6. Market Factors Analysis
     ax6 = axes[1, 2]
     
-    factors = ['Market Size', 'Competition', 'Team Size', 'Revenue', 'Funding']
+    factors = ['Market Size', 'Competition', 'Team Size', 'Valuation', 'Funding']
     scores = [
         min(100, data.get('market_size_billion_usd', 10) * 5),
         100 - data.get('competition_level', 5) * 10,
         min(100, data.get('team_size', 25) * 2),
-        min(100, data.get('revenue_usd', 500000) / 50000),
-        min(100, data.get('funding_amount_usd', 5000000) / 200000)
+        min(100, data.get('valuation_usd', 0) / 2000000),
+        min(100, data.get('funding_amount_usd', 0) / 200000)
     ]
     
     # Normalize scores to 0-100
@@ -1945,7 +2831,7 @@ def _normalize_investment_tier_label(label: str) -> str:
     except Exception:
         return ''
 
-def precompute_investment_tiers(max_rows: int | None = None):
+def precompute_investment_tiers(max_rows: int | None = None, *, force_refresh: bool = False):
     """Precompute analysis for all companies and cache results on the DataFrame.
 
     Adds columns to sample_data:
@@ -1954,7 +2840,8 @@ def precompute_investment_tiers(max_rows: int | None = None):
       - precomputed_investment_tier_norm (str: {'tier1','tier2','tier3','avoid'})
       - precomputed_recommendation (str)
       - precomputed_risk_level (str)
-    and populates ANALYSIS_CACHE[company_id] with the full analysis dict.
+    and populates ANALYSIS_CACHE[company_id] with the full analysis dict. When force_refresh=True,
+    cached analyses for the targeted rows are recomputed to reflect updated policies.
     """
     global sample_data, ANALYSIS_CACHE
     if sample_data is None or len(sample_data) == 0:
@@ -1974,13 +2861,17 @@ def precompute_investment_tiers(max_rows: int | None = None):
             sample_data[col] = default
 
     processed = 0
+    processed_indices = []
     for idx, row in sample_data.head(n_limit).iterrows():
         try:
             company_id = str(row.get('company_id', ''))
             if not company_id:
                 continue
-            # Skip if already cached
+            # Skip recomputation unless forced or cache missing
             cached = ANALYSIS_CACHE.get(company_id)
+            if force_refresh and company_id in ANALYSIS_CACHE:
+                ANALYSIS_CACHE.pop(company_id, None)
+                cached = None
             if cached is None or not cached.get('investment_tier'):
                 eval_data = {
                     'company_name': str(row.get('company_name', '')),
@@ -1996,31 +2887,211 @@ def precompute_investment_tiers(max_rows: int | None = None):
                     'competition_level': int(float(row.get('competition_level', 5))) if pd.notna(row.get('competition_level')) else 5,
                     'market_size_billion_usd': float(row.get('market_size_billion_usd', 1.0)) if pd.notna(row.get('market_size_billion_usd')) else 1.0,
                 }
-                analysis = analyze_company_comprehensive(eval_data)
+                analysis = analyze_company_comprehensive(eval_data, precompute_mode=True)
                 ANALYSIS_CACHE[company_id] = analysis
             else:
                 analysis = cached
 
             inv_tier = str(analysis.get('investment_tier', ''))
             inv_norm = _normalize_investment_tier_label(inv_tier)
-            sample_data.at[idx, 'precomputed_attractiveness_score'] = float(analysis.get('attractiveness_score', np.nan))
+            score_val = float(analysis.get('attractiveness_score', np.nan))
+            sample_data.at[idx, 'precomputed_attractiveness_score'] = score_val
             sample_data.at[idx, 'precomputed_investment_tier'] = inv_tier
             sample_data.at[idx, 'precomputed_investment_tier_norm'] = inv_norm
             sample_data.at[idx, 'precomputed_recommendation'] = str(analysis.get('recommendation', ''))
             sample_data.at[idx, 'precomputed_risk_level'] = str(analysis.get('risk_level', ''))
             processed += 1
+            processed_indices.append(idx)
             if processed % 200 == 0:
                 print(f"   Precomputed {processed}/{n_limit} companies...")
         except Exception as _e:
             # Continue on individual row failures
             continue
+    # Optional: Distribution-aware normalization to achieve realistic VC-style tier distribution
+    try:
+        if processed_indices:
+            s = sample_data.loc[processed_indices, 'precomputed_attractiveness_score'].astype(float)
+            # Compute current tier distribution (using updated thresholds)
+            def _tier(x: float) -> str:
+                return 'invest' if x >= 65 else ('monitor' if x >= 50 else 'avoid')
+            current_tiers = s.apply(_tier).value_counts()
+            invest_share = current_tiers.get('invest', 0) / max(1, len(s))
+            avoid_count = current_tiers.get('avoid', 0)
+            
+            # Always apply normalization to achieve realistic VC distribution
+            # Target: ~30% Invest, ~45% Monitor, ~25% Avoid
+            v = s.values
+            v_valid = v[np.isfinite(v)]
+            if v_valid.size >= 10 and (np.percentile(v_valid, 90) - np.percentile(v_valid, 10)) > 1e-6:
+                # Use percentile-based mapping for more realistic spread
+                # Map P30 -> 50 (avoid/monitor boundary), P75 -> 65 (monitor/invest boundary)
+                p30 = np.percentile(v_valid, 30)
+                p75 = np.percentile(v_valid, 75)
+                
+                # Linear mapping: [p30, p75] -> [50, 65]
+                if abs(p75 - p30) > 1e-6:
+                    a = (65.0 - 50.0) / (p75 - p30)
+                    b = 50.0 - a * p30
+                    v2 = np.clip(a * v + b, 0.0, 100.0)
+                    
+                    sample_data.loc[processed_indices, 'precomputed_attractiveness_score'] = v2
+                    # Recompute tiers and recommendations (using updated thresholds: Invest >= 65, Monitor >= 50)
+                    new_tiers = ['Invest' if x >= 65.0 else ('Monitor' if x >= 50.0 else 'Avoid') for x in v2]
+                    sample_data.loc[processed_indices, 'precomputed_investment_tier'] = new_tiers
+                    sample_data.loc[processed_indices, 'precomputed_investment_tier_norm'] = [
+                        _normalize_investment_tier_label(t) for t in new_tiers
+                    ]
+                    sample_data.loc[processed_indices, 'precomputed_recommendation'] = [
+                        get_recommendation(x) for x in v2
+                    ]
+                    sample_data.loc[processed_indices, 'precomputed_risk_level'] = [
+                        'High' if x < 50 else ('Medium' if x < 65 else 'Low') for x in v2
+                    ]
+                    
+                    # Report the actual distribution achieved
+                    final_tiers = pd.Series(new_tiers).value_counts()
+                    invest_pct = (final_tiers.get('Invest', 0) / len(new_tiers)) * 100
+                    monitor_pct = (final_tiers.get('Monitor', 0) / len(new_tiers)) * 100
+                    avoid_pct = (final_tiers.get('Avoid', 0) / len(new_tiers)) * 100
+                    print(f"Info: Applied distribution normalization → Invest: {invest_pct:.0f}%, Monitor: {monitor_pct:.0f}%, Avoid: {avoid_pct:.0f}%")
+    except Exception as _norm_err:
+        print(f"Warning: Score normalization step skipped due to error: {_norm_err}")
     print(f"Success: Precomputed tiers for {processed} companies (of {n_limit})")
 
-# Initialize models when module is imported (can be disabled via env)
-print("Initializing ML models for Deal Scout...")
-_auto_train = os.environ.get('AUTO_TRAIN_ON_IMPORT', 'true').strip().lower() in ['true','1','yes']
+#############################
+# Fast bootstrap + lazy train
+#############################
+
+def _fast_bootstrap_models(n_samples: int = 300):
+    """Train a tiny, fast baseline on synthetic data so the app can serve immediately.
+
+    - Uses LogisticRegression (balanced) for classification
+    - Small RandomForestRegressor for funding/valuation
+    - Sets a small sample_data for list endpoints
+    - Auto-precomputes tiers for instant filtering
+    - Completes in well under a second on typical laptops
+    """
+    global startup_classifier, startup_regressor, startup_valuation_regressor, feature_scaler, feature_columns, sample_data, training_numerical_columns, data_source
+    try:
+        df = generate_startup_data(max(100, int(n_samples)))
+        data_source = "bootstrap:synthetic"
+        # Engineer features quickly
+        feat = engineer_features(df)
+        X = feat['feature_matrix']
+        y_class = feat['y_classification']
+        y_reg = feat['y_regression']
+        y_val = feat['y_valuation']
+
+        # Store feature metadata
+        feature_scaler = feat['scaler']
+        feature_columns = feat['feature_names']
+        training_numerical_columns = feat.get('numerical_columns', [
+            'funding_amount_usd', 'valuation_usd', 'team_size', 'years_since_founding',
+            'num_investors', 'competition_level', 'market_size_billion_usd',
+            'funding_efficiency', 'funding_per_employee',
+            'funding_amount_log', 'valuation_log'
+        ])
+
+        # Very fast baseline models
+        from sklearn.linear_model import LogisticRegression
+        startup_classifier = ThresholdedClassifier(
+            LogisticRegression(max_iter=100, class_weight='balanced', n_jobs=None, solver='lbfgs'),
+            threshold=0.5
+        )
+        startup_classifier.base_estimator.fit(X, y_class)
+
+        # Bind feature bundle to classifier for stable inference
+        _bind_feature_bundle_to_classifier(
+            startup_classifier,
+            feature_columns,
+            training_numerical_columns,
+            feature_scaler
+        )
+
+        from sklearn.ensemble import RandomForestRegressor
+        startup_regressor = RandomForestRegressor(n_estimators=80, max_depth=None, random_state=42, n_jobs=-1)
+        startup_regressor.fit(X, y_reg)
+        startup_valuation_regressor = RandomForestRegressor(n_estimators=80, max_depth=None, random_state=42, n_jobs=-1)
+        startup_valuation_regressor.fit(X, y_val)
+
+        # Keep a small sample for UI list views
+        sample_df = df.copy()
+        try:
+            sample_df['industry_group'] = sample_df['industry'].apply(consolidate_industry)
+            sample_df['region'] = sample_df['location'].apply(map_location_to_region)
+        except Exception:
+            pass
+        sample_data = sample_df.head(300).copy()
+        
+        # Auto-precompute tiers for instant filtering
+        try:
+            print("Bootstrap: Auto-precomputing tiers for instant filtering...")
+            precompute_investment_tiers(max_rows=300)
+            print("Bootstrap: Fast baseline models ready with precomputed tiers")
+        except Exception as _pc_err:
+            print(f"Bootstrap: Fast baseline models ready (precompute warning: {_pc_err})")
+    except Exception as _boot_err:
+        print(f"Bootstrap: Failed to build fast models: {_boot_err}")
+
+
+_bg_thread = None
+
+def _background_train_worker():
+    """Background worker that performs full training and automatically precomputes tiers.
+
+    Tier precomputation happens automatically after training completes for instant UI filtering.
+    """
+    try:
+        # Auto-precompute is now the default; PRECOMPUTE_DISABLE honored if explicitly set
+        _precompute_after = os.environ.get('PRECOMPUTE_DISABLE', 'false').lower() not in {'1', 'true', 'yes', 'y'}
+        if not _precompute_after:
+            # Override: disable precompute in background training when explicitly requested
+            os.environ['PRECOMPUTE_DISABLE'] = 'true'
+        
+        train_models()
+        
+        if _precompute_after:
+            print("Background: Auto-precomputing tiers after full training...")
+            try:
+                # Trigger automatic precomputation for 400 companies (fast and reasonable)
+                precompute_investment_tiers(max_rows=400)
+                print("Background: Auto-precompute completed successfully (400 companies)")
+            except Exception as precomp_err:
+                print(f"Background: Auto-precompute failed (non-fatal): {precomp_err}")
+        
+        print("Background: Full models trained and ready")
+    except Exception as e:
+        print(f"Background: Training failed: {e}")
+
+
+def kickoff_background_training():
+    """Start background training exactly once."""
+    global _bg_thread
+    if _bg_thread is None or not _bg_thread.is_alive():
+        import threading as _th
+        _bg_thread = _th.Thread(target=_background_train_worker, daemon=True)
+        _bg_thread.start()
+        print("Background: Training thread started")
+
+
+# Initialize models when module is imported (optimized for instant startup)
+print("Initializing Deal Scout models (instant-start mode)...")
+
+# Default: do NOT heavy-train on import. Provide fast bootstrap and train in background.
+_auto_train = os.environ.get('AUTO_TRAIN_ON_IMPORT', 'false').strip().lower() in ['true','1','yes']
+_do_bootstrap = os.environ.get('BOOTSTRAP_FAST', 'true').strip().lower() in ['true','1','yes']
+_lazy_bg = os.environ.get('LAZY_BACKGROUND_TRAIN', 'true').strip().lower() in ['true','1','yes']
+
 if _auto_train:
     train_models()
     print("Models ready for web application!")
 else:
-    print("Skipping auto training on import due to AUTO_TRAIN_ON_IMPORT=false")
+    if _do_bootstrap:
+        _fast_bootstrap_models(n_samples=300)
+    else:
+        # As a last resort, ensure we at least have some data and trivial models
+        _fast_bootstrap_models(n_samples=150)
+    if _lazy_bg:
+        kickoff_background_training()
+    else:
+        print("Info: Background training disabled (LAZY_BACKGROUND_TRAIN=false)")

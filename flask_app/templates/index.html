@@ -23,6 +23,14 @@
     <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" rel="stylesheet">
     <!-- Chart.js with all chart types support -->
     <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.js"></script>
+    <!-- Chart.js Data Labels plugin for improved readability -->
+    <script src="https://cdn.jsdelivr.net/npm/chartjs-plugin-datalabels@2"></script>
+    <!-- Modular dashboard CSS -->
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/dashboard.css') }}">
+    <!-- Evaluate Companies modular CSS -->
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/evaluate.css') }}">
+    <!-- Home landing modular CSS -->
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/home.css') }}">
     
     <style>
         /* Deal Scout Branding */
@@ -54,13 +62,7 @@
             max-width: 1400px;
         }
         
-        .header-section {
-            background: linear-gradient(135deg, var(--gradient-start) 0%, var(--gradient-end) 100%);
-            color: white;
-            padding: 0.85rem 0.75rem;
-            border-radius: 20px 20px 0 0;
-            text-align: center;
-        }
+        .header-section { background: linear-gradient(135deg, var(--gradient-start) 0%, var(--gradient-end) 100%); color: white; padding: 0; border-radius: 20px 20px 0 0; text-align: center; }
 
         /* Brand logo: more visible, responsive, flows with header */
         .brand-logo {
@@ -267,9 +269,7 @@
         }
         
         /* Enhanced Analysis Modal Styles */
-        #analysisModal .modal-dialog {
-            max-width: 95vw;
-        }
+        #analysisModal .modal-dialog { max-width: 95vw; }
         
         #analysisModal .tab-content {
             min-height: 500px;
@@ -287,9 +287,7 @@
             font-weight: 600;
         }
         
-        #analysisModal canvas {
-            max-height: 300px;
-        }
+        #analysisModal canvas { max-height: 520px; }
         
         #analysisModal .nav-tabs .nav-link {
             color: #495057;
@@ -474,38 +472,39 @@
         <div class="main-container">
             <!-- Header Section -->
             <div class="header-section">
-                <div style="text-align: center; margin-bottom: 0.25rem;">
-                    <img class="brand-logo" src="{{ url_for('static', filename='images/deal-scout-logo.png') }}" 
-                         alt="Deal Scout">
-                </div>
-                <div class="row mt-2">
-                    <div class="col-md-3 col-6">
-                        <div class="feature-icon"><i class="fas fa-brain"></i></div>
-                        <h6>Machine Learning</h6>
-                        <small>99.4% Accuracy</small>
-                    </div>
-                    <div class="col-md-3 col-6">
-                        <div class="feature-icon"><i class="fas fa-chart-line"></i></div>
-                        <h6>Real-time Analysis</h6>
-                        <small>Instant Results</small>
-                    </div>
-                    <div class="col-md-3 col-6">
-                        <div class="feature-icon"><i class="fas fa-shield-alt"></i></div>
-                        <h6>Risk Assessment</h6>
-                        <small>Comprehensive Scoring</small>
-                    </div>
-                    <div class="col-md-3 col-6">
-                        <div class="feature-icon"><i class="fas fa-lightbulb"></i></div>
-                        <h6>Smart Insights</h6>
-                        <small>Actionable Recommendations</small>
+                <div class="hero-banner">
+                    <img class="brand-logo" src="{{ url_for('static', filename='images/deal-scout-logo.png') }}" alt="Deal Scout">
+                    <div class="hero-title">AI-Powered Deal Evaluation</div>
+                    <div class="hero-subtitle">Faster, clearer investment decisions with transparent ML scoring and actionable insights.</div>
+                    <div class="hero-icons mt-3">
+                        <div class="hero-icon">
+                            <i class="fas fa-brain" aria-hidden="true"></i>
+                            <h6>Machine Learning</h6>
+                            <small>Evidence‑based Accuracy</small>
+                        </div>
+                        <div class="hero-icon">
+                            <i class="fas fa-wave-square" aria-hidden="true"></i>
+                            <h6>Real-time Analysis</h6>
+                            <small>Results in Seconds</small>
+                        </div>
+                        <div class="hero-icon">
+                            <i class="fas fa-shield-halved" aria-hidden="true"></i>
+                            <h6>Risk Assessment</h6>
+                            <small>Transparent Scoring</small>
+                        </div>
+                        <div class="hero-icon">
+                            <i class="fas fa-lightbulb" aria-hidden="true"></i>
+                            <h6>Smart Insights</h6>
+                            <small>Actionable Guidance</small>
+                        </div>
                     </div>
                 </div>
             </div>
             
             <!-- Main Content -->
             <div class="p-4">
-                <!-- Navigation Tabs - UPDATED VERSION NO EVALUATE DEAL -->
-                <ul class="nav nav-pills justify-content-center mb-4" id="mainTabs" role="tablist">
+                <!-- Sticky Navigation -->
+                <ul class="nav nav-pills justify-content-center mb-4 sticky-nav" id="mainTabs" role="tablist">
                     <li class="nav-item" role="presentation">
                         <button class="nav-link active" id="home-tab" data-bs-toggle="pill" data-bs-target="#home" type="button" role="tab">
                             <i class="fas fa-home"></i> Home
@@ -520,72 +519,71 @@
                 
                 <div class="tab-content" id="mainTabContent">
                     
-                    <!-- Home Tab (previously About) -->
+                    <!-- Home Tab (Landing) -->
                     <div class="tab-pane fade show active" id="home" role="tabpanel">
                         <div class="row">
                             <div class="col-lg-10 mx-auto">
                                 <div class="card">
                                     <div class="card-body">
-                                        <h3 class="text-center mb-3"><i class="fas fa-home"></i> Deal Scout</h3>
-                                        <p class="text-center text-muted mb-4">AI-powered, data-driven startup evaluation—fast, clear, and consistent.</p>
-
-                                        <div class="row g-3 mb-3">
-                                            <div class="col-md-4">
-                                                <div class="metric-card">
-                                                    <div class="metric-value"><i class="fas fa-robot"></i></div>
-                                                    <div class="metric-label">ML-driven scoring (0–100)</div>
+                                        <div class="features-grid reveal-up">
+                                            <div class="feature-box">
+                                                <div class="icon icon-ml"><i class="fas fa-robot" aria-hidden="true"></i></div>
+                                                <div class="content">
+                                                    <h5>ML-Driven Scoring</h5>
+                                                    <p>Transparent 0–100 scoring grounded in real-world data.</p>
                                                 </div>
                                             </div>
-                                            <div class="col-md-4">
-                                                <div class="metric-card">
-                                                    <div class="metric-value"><i class="fas fa-chart-line"></i></div>
-                                                    <div class="metric-label">Clear tiers: Invest • Monitor • Avoid</div>
+                                            <div class="feature-box">
+                                                <div class="icon icon-real"><i class="fas fa-chart-line" aria-hidden="true"></i></div>
+                                                <div class="content">
+                                                    <h5>Instant Results</h5>
+                                                    <p>Evaluate companies in seconds with live, responsive UI.</p>
                                                 </div>
                                             </div>
-                                            <div class="col-md-4">
-                                                <div class="metric-card">
-                                                    <div class="metric-value"><i class="fas fa-comments"></i></div>
-                                                    <div class="metric-label">Actionable insights & risks</div>
+                                            <div class="feature-box">
+                                                <div class="icon icon-insights"><i class="fas fa-comments" aria-hidden="true"></i></div>
+                                                <div class="content">
+                                                    <h5>Actionable Insights</h5>
+                                                    <p>Clear rationale, risks, and recommendations you can trust.</p>
                                                 </div>
                                             </div>
                                         </div>
 
-                                        <div class="methodology-section" aria-label="Investment tiers overview">
-                                            <div class="row text-center align-items-stretch">
+                                        <div class="methodology-section reveal-up" aria-label="Investment tiers overview">
+                                            <div class="row text-center align-items-stretch tiers-grid">
                                                 <!-- Invest -->
                                                 <div class="col-12 col-md-4 mb-3">
-                                                    <div class="tier-card tier-invest py-3 h-100">
+                                                    <div class="tier-card tier-invest py-3 h-100" tabindex="0" role="button" aria-label="Invest tier: score 65 or more" onclick="goToEvaluate('invest')">
                                                         <div class="tier-score"><i class="fa-solid fa-circle-check me-1" aria-hidden="true"></i>Invest</div>
                                                         <div class="tier-name">High‑conviction opportunity</div>
-                                                        <div class="tier-desc">Score ≥ 60</div>
+                                                        <div class="tier-desc">Score ≥ 65</div>
                                                     </div>
                                                 </div>
                                                 <!-- Monitor -->
                                                 <div class="col-12 col-md-4 mb-3">
-                                                    <div class="tier-card tier-monitor py-3 h-100">
+                                                    <div class="tier-card tier-monitor py-3 h-100" tabindex="0" role="button" aria-label="Monitor tier: score 50 to 64" onclick="goToEvaluate('monitor')">
                                                         <div class="tier-score"><i class="fa-solid fa-triangle-exclamation me-1" aria-hidden="true"></i>Monitor</div>
                                                         <div class="tier-name">Promising—watch closely</div>
-                                                        <div class="tier-desc">Score 45–59</div>
+                                                        <div class="tier-desc">Score 50–64</div>
                                                     </div>
                                                 </div>
                                                 <!-- Avoid -->
                                                 <div class="col-12 col-md-4 mb-3">
-                                                    <div class="tier-card tier-avoid py-3 h-100">
+                                                    <div class="tier-card tier-avoid py-3 h-100" tabindex="0" role="button" aria-label="Avoid tier: score below 50" onclick="goToEvaluate('avoid')">
                                                         <div class="tier-score"><i class="fa-solid fa-circle-xmark me-1" aria-hidden="true"></i>Avoid</div>
                                                         <div class="tier-name">Risk outweighs return</div>
-                                                        <div class="tier-desc">Score &lt; 45</div>
+                                                        <div class="tier-desc">Score &lt; 50</div>
                                                     </div>
                                                 </div>
                                             </div>
                                         </div>
 
-                                        <div class="mission-statement mt-3 p-3 p-md-4 text-center">
-                                            <h5 class="mb-2"><i class="fas fa-bullseye me-2"></i>Our Mission</h5>
-                                            <p>
-                                                Deal Scout empowers investors to make faster, more confident, and data‑driven decisions
-                                                by unifying real‑world datasets with transparent ML scoring and a clear tiered framework.
-                                                We turn complexity into clarity—so you can focus on the right opportunities.
-                                            </p>
+                                        <div class="mission-panel mt-3 reveal-up" role="region" aria-label="Our Mission">
+                                            <div class="mission-icon" aria-hidden="true"><i class="fas fa-bullseye"></i></div>
+                                            <div class="mission-body">
+                                                <h5>Our Mission</h5>
+                                                <p>Deal Scout empowers investors to make faster, more confident, and data‑driven decisions by unifying real‑world datasets with transparent ML scoring and a clear tiered framework. We turn complexity into clarity—so you can focus on the right opportunities.</p>
+                                            </div>
                                         </div>
                                     </div>
                                 </div>
@@ -597,55 +595,59 @@
                     <div class="tab-pane fade" id="companies-real" role="tabpanel">
                         <div class="row mb-4">
                             <div class="col-12">
-                                <div class="card">
-                                    <div class="card-body">
-                                        <div class="row g-3">
-                                            <div class="col-md-4">
-                                                <label class="form-label">Industry Group</label>
-                                                <select class="form-select" id="industryFilter">
-                                                    <option value="">All Industry Groups</option>
-                                                </select>
-                                            </div>
-                                            <div class="col-md-4">
-                                                <label class="form-label">Region</label>
-                                                <select class="form-select" id="locationFilter">
-                                                    <option value="">All Regions</option>
-                                                </select>
-                                            </div>
-                                            <div class="col-md-3">
-                                                <label class="form-label">Investment Tier</label>
-                                                <select class="form-select" id="tierFilter">
-                                                    <option value="">All Tiers</option>
-                                                    <option value="invest">🟢 Invest</option>
-                                                    <option value="monitor">🟡 Monitor</option>
-                                                    <option value="avoid">🔴 Avoid</option>
-                                                </select>
-                                            </div>
-                                            <div class="col-md-1 d-flex align-items-end">
-                                                <button id="searchBtn" class="btn btn-primary w-100" onclick="searchCompanies()">
-                                                    <i class="fas fa-search"></i>
-                                                </button>
-                                            </div>
+                                <div class="filters-card p-3 p-md-4" role="region" aria-label="Company filters">
+                                    <div class="row g-3">
+                                        <div class="col-md-4">
+                                            <label class="form-label">Industry Group
+                                                <i class="fas fa-circle-info info-icon" tabindex="0" data-bs-toggle="tooltip" data-bs-title="Filter by macro industry grouping (e.g., Fintech, Healthcare, SaaS)"></i>
+                                            </label>
+                                            <select class="form-select" id="industryFilter">
+                                                <option value="">All Industry Groups</option>
+                                            </select>
                                         </div>
-                                        
-                                        <!-- Comparison Panel -->
-                                        <div class="row mt-3" id="comparisonPanel" style="display: none;">
-                                            <div class="col-12">
-                                                <div class="alert alert-info">
-                                                    <div class="d-flex justify-content-between align-items-center">
-                                                        <div>
-                                                            <i class="fas fa-balance-scale"></i>
-                                                            <strong>Compare Companies:</strong>
-                                                            <span id="comparisonCount">0</span> selected
-                                                        </div>
-                                                        <div>
-                                                            <button class="btn btn-sm btn-success me-2" onclick="showComparison()" id="compareBtn" disabled>
-                                                                <i class="fas fa-chart-bar"></i> Compare
-                                                            </button>
-                                                            <button class="btn btn-sm btn-secondary" onclick="clearComparison()">
-                                                                <i class="fas fa-times"></i> Clear
-                                                            </button>
-                                                        </div>
+                                        <div class="col-md-4">
+                                            <label class="form-label">Region
+                                                <i class="fas fa-circle-info info-icon" tabindex="0" data-bs-toggle="tooltip" data-bs-title="Filter by company region or location"></i>
+                                            </label>
+                                            <select class="form-select" id="locationFilter">
+                                                <option value="">All Regions</option>
+                                            </select>
+                                        </div>
+                                        <div class="col-md-3">
+                                            <label class="form-label">Investment Tier
+                                                <i class="fas fa-circle-info info-icon" tabindex="0" data-bs-toggle="tooltip" data-bs-title="Invest ≥ 65 • Monitor 50–64 • Avoid &lt; 50"></i>
+                                            </label>
+                                            <select class="form-select" id="tierFilter">
+                                                <option value="">All Tiers</option>
+                                                <option value="invest">Invest</option>
+                                                <option value="monitor">Monitor</option>
+                                                <option value="avoid">Avoid</option>
+                                            </select>
+                                        </div>
+                                        <div class="col-md-1 d-flex align-items-end">
+                                            <button id="searchBtn" class="btn btn-primary w-100" onclick="searchCompanies()" aria-label="Search companies">
+                                                <i class="fas fa-search" aria-hidden="true"></i>
+                                            </button>
+                                        </div>
+                                    </div>
+
+                                    <!-- Comparison Panel -->
+                                    <div class="row mt-3" id="comparisonPanel" style="display: none;">
+                                        <div class="col-12">
+                                            <div class="alert alert-info">
+                                                <div class="d-flex justify-content-between align-items-center">
+                                                    <div>
+                                                        <i class="fas fa-balance-scale" aria-hidden="true"></i>
+                                                        <strong>Compare Companies:</strong>
+                                                        <span id="comparisonCount">0</span> selected
+                                                    </div>
+                                                    <div>
+                                                        <button class="btn btn-sm btn-success me-2" onclick="showComparison()" id="compareBtn" disabled>
+                                                            <i class="fas fa-chart-bar" aria-hidden="true"></i> Compare
+                                                        </button>
+                                                        <button class="btn btn-sm btn-secondary" onclick="clearComparison()">
+                                                            <i class="fas fa-times" aria-hidden="true"></i> Clear
+                                                        </button>
                                                     </div>
                                                 </div>
                                             </div>
@@ -671,7 +673,7 @@
                         <div class="row mt-4">
                             <div class="col-12 d-flex justify-content-center">
                                 <nav>
-                                    <ul class="pagination" id="companyPagination">
+                                    <ul class="pagination neomorph" id="companyPagination">
                                         <!-- Pagination will be generated here -->
                                     </ul>
                                 </nav>
@@ -688,6 +690,23 @@
     
     <!-- Custom JavaScript -->
     <script>
+        // Register Chart.js DataLabels plugin if available
+        document.addEventListener('DOMContentLoaded', function() {
+            try {
+                if (window.Chart && window.ChartDataLabels && !window.__dsChartsPatched) {
+                    Chart.register(window.ChartDataLabels);
+                    window.__dsChartsPatched = true;
+                }
+            } catch (e) { /* no-op */ }
+        });
+
+        function enableTooltips(root=document) {
+            try {
+                const tooltipTriggerList = [].slice.call(root.querySelectorAll('[data-bs-toggle="tooltip"]'));
+                tooltipTriggerList.forEach(el => new bootstrap.Tooltip(el));
+            } catch (e) { /* no-op */ }
+        }
+
         // Data source info loading (keeping only relevant functions)
         
         // Company browsing functionality
@@ -758,9 +777,9 @@
             function mapServerTierToClient(tierStr) {
                 if (!tierStr) return null;
                 const t = tierStr.toLowerCase();
-                if (t.includes('invest') || t.includes('tier 1') || t.includes('tier 2')) return { tier: 'invest', class: 'company-tier-invest', badge: 'bg-success', text: '🟢 Invest', icon: 'fas fa-star text-success' };
-                if (t.includes('monitor') || t.includes('hold') || t.includes('tier 3')) return { tier: 'monitor', class: 'company-tier-monitor', badge: 'bg-warning text-dark', text: '🟡 Monitor', icon: 'fas fa-exclamation-triangle text-warning' };
-                if (t.includes('avoid') || t.includes('tier 4')) return { tier: 'avoid', class: 'company-tier-avoid', badge: 'bg-danger', text: '🔴 Avoid', icon: 'fas fa-times-circle text-danger' };
+                if (t.includes('invest') || t.includes('tier 1') || t.includes('tier 2')) return { tier: 'invest', class: 'company-tier-invest', badgeClass: 'badge-invest', label: 'Invest', icon: 'fas fa-star text-success' };
+                if (t.includes('monitor') || t.includes('hold') || t.includes('tier 3')) return { tier: 'monitor', class: 'company-tier-monitor', badgeClass: 'badge-monitor', label: 'Monitor', icon: 'fas fa-exclamation-triangle text-warning' };
+                if (t.includes('avoid') || t.includes('tier 4')) return { tier: 'avoid', class: 'company-tier-avoid', badgeClass: 'badge-avoid', label: 'Avoid', icon: 'fas fa-times-circle text-danger' };
                 return null;
             }
 
@@ -773,39 +792,40 @@
                 // Try to use backend-calculated tier first
                 let tierInfo = mapServerTierToClient(company.investment_tier);
                 if (!tierInfo) {
-                    // Fallback from attractiveness score using 3-tier thresholds
+                    // Fallback from attractiveness score using 3-tier thresholds (updated Oct 2025)
                     const score = Number(company.attractiveness_score ?? 0);
-                    if (score >= 60) tierInfo = { tier: 'invest', class: 'company-tier-invest', badge: 'bg-success', text: '🟢 Invest', icon: 'fas fa-star text-success' };
-                    else if (score >= 45) tierInfo = { tier: 'monitor', class: 'company-tier-monitor', badge: 'bg-warning text-dark', text: '🟡 Monitor', icon: 'fas fa-exclamation-triangle text-warning' };
-                    else tierInfo = { tier: 'avoid', class: 'company-tier-avoid', badge: 'bg-danger', text: '🔴 Avoid', icon: 'fas fa-times-circle text-danger' };
+                    if (score >= 65) tierInfo = { tier: 'invest', class: 'company-tier-invest', badgeClass: 'badge-invest', label: 'Invest', icon: 'fas fa-star text-success' };
+                    else if (score >= 50) tierInfo = { tier: 'monitor', class: 'company-tier-monitor', badgeClass: 'badge-monitor', label: 'Monitor', icon: 'fas fa-exclamation-triangle text-warning' };
+                    else tierInfo = { tier: 'avoid', class: 'company-tier-avoid', badgeClass: 'badge-avoid', label: 'Avoid', icon: 'fas fa-times-circle text-danger' };
                 }
 
-                const valuationText = (company.valuation_usd / 1000000).toFixed(1);
+                const valuationSafe = Number(company.valuation_usd || 0);
+                const valuationText = Number.isFinite(valuationSafe) && valuationSafe > 0 ? (valuationSafe / 1000000).toFixed(1) : '—';
                 const scoreVal = Number.isFinite(Number(company.attractiveness_score)) ? Math.round(Number(company.attractiveness_score)) : null;
 
                 return `
                         <div class="col-md-4 mb-4">
-                            <div class="card company-card ${tierInfo.class}" data-tier="${tierInfo.tier}" data-company-id="${company.company_id}">
+                            <div class="card company-card ${tierInfo.class}" data-tier="${tierInfo.tier}" data-company-id="${company.company_id}" tabindex="0">
                                 <div class="card-body">
-                                    <h5 class="card-title">${company.company_name}</h5>
-                                    <p class="card-subtitle mb-2 text-muted">${company.industry} • ${company.location}</p>
-                                    <p class="card-text small">${company.funding_round} • ${company.team_size} employees</p>
-
-                                    <div class="d-flex justify-content-start">
-                                        <div>
-                                            <div class="text-muted small">Valuation</div>
-                                            <div class="fw-bold">$${valuationText}M</div>
+                                    <h5 class="card-title mb-1">${company.company_name}</h5>
+                                    <div class="meta mb-2"><i class="fas fa-industry me-1" aria-hidden="true"></i>${company.industry} • <i class="fas fa-location-dot mx-1" aria-hidden="true"></i>${company.location}</div>
+                                    <div class="row g-2 align-items-center">
+                                        <div class="col-5">
+                                            <div class="metric"><div class="label"><i class="fas fa-briefcase me-1" aria-hidden="true"></i>Round</div><div class="fw-semibold">${company.funding_round || '—'}</div></div>
+                                        </div>
+                                        <div class="col-3">
+                                            <div class="metric"><div class="label"><i class="fas fa-users me-1" aria-hidden="true"></i>Team</div><div class="fw-semibold">${company.team_size ?? '—'}</div></div>
+                                        </div>
+                                        <div class="col-4">
+                                            <div class="metric text-end"><div class="label"><i class="fas fa-dollar-sign me-1" aria-hidden="true"></i>Valuation</div><div class="fw-bold">${valuationText === '—' ? '—' : `$${valuationText}M`}</div></div>
                                         </div>
                                     </div>
-
-                                    <div class="mt-3 d-flex align-items-center gap-2">
-                                        <span class="badge ${tierInfo.badge}">${tierInfo.text}</span>
-                                        <span class="badge bg-light text-dark border">Score: ${scoreVal !== null ? `${scoreVal}%` : '—'}</span>
+                                    <div class="divider"></div>
+                                    <div class="d-flex align-items-center gap-2">
+                                        <span class="badge ${tierInfo.badgeClass}">${tierInfo.label}</span>
+                                        <span class="badge badge-score">Score: ${scoreVal !== null ? `${scoreVal}%` : '—'}</span>
                                     </div>
-
-                                    <div class="mt-3 d-flex gap-2">
-                                        <button class="btn btn-outline-primary btn-sm" onclick="analyzeCompany('${company.company_id}', event)"><i class="fas fa-chart-line"></i> Analyze</button>
-                                    </div>
+                                    <button class="btn btn-analyze btn-sm mt-3" onclick="analyzeCompany('${company.company_id}', event)"><i class="fas fa-chart-line" aria-hidden="true"></i> Analyze</button>
                                 </div>
                             </div>
                         </div>`;
@@ -1027,15 +1047,24 @@
                             </tr>
                             <tr>
                                 <td><strong>Funding Amount</strong></td>
-                                ${companies.map(c => `<td class="text-center">$${(c.funding_amount_usd/1000000).toFixed(1)}M</td>`).join('')}
+                                ${companies.map(c => {
+                                    const v = Number(c.funding_amount_usd || 0);
+                                    return `<td class="text-center">${v > 0 ? `$${(v/1000000).toFixed(1)}M` : '—'}</td>`;
+                                }).join('')}
                             </tr>
                             <tr>
                                 <td><strong>Valuation</strong></td>
-                                ${companies.map(c => `<td class="text-center">$${(c.valuation_usd/1000000).toFixed(1)}M</td>`).join('')}
+                                ${companies.map(c => {
+                                    const v = Number(c.valuation_usd || 0);
+                                    return `<td class="text-center">${v > 0 ? `$${(v/1000000).toFixed(1)}M` : '—'}</td>`;
+                                }).join('')}
                             </tr>
                             <tr>
                                 <td><strong>Revenue</strong></td>
-                                ${companies.map(c => `<td class="text-center">$${(c.revenue_usd/1000000).toFixed(1)}M</td>`).join('')}
+                                ${companies.map(c => {
+                                    const v = Number(c.revenue_usd || 0);
+                                    return `<td class="text-center">${v > 0 ? `$${(v/1000000).toFixed(1)}M` : '—'}</td>`;
+                                }).join('')}
                             </tr>
                             <tr>
                                 <td><strong>Success Status</strong></td>
@@ -1137,105 +1166,103 @@
             
             const attractivenessNum = Number(ml_predictions.attractiveness_score || 0);
             const attractiveness = attractivenessNum.toFixed(1);
-            // success_probability is 0-1 from backend; convert to % for display and logic
-            const successProbRaw = Number(ml_predictions.success_probability || 0);
-            const success_prob_pct = (successProbRaw * 100);
-            const success_prob = success_prob_pct.toFixed(1);
+            // success probability is intentionally not displayed in the dashboard UI
             const recommendation = ml_predictions.recommendation || ml_predictions.investment_recommendation || 'Evaluate';
             const investment_tier = ml_predictions.investment_tier || 'Monitor';
+            const attractivenessTierKey = attractivenessNum >= 65 ? 'invest' : (attractivenessNum >= 50 ? 'monitor' : 'avoid');
+            const probabilityBandKey = (ml_predictions.probability_band || 'unknown').toLowerCase();
+            const probabilityBandLabel = ml_predictions.probability_band_label || 'Probability unavailable';
+            const probabilityRangeNote = ml_predictions.probability_range_note || 'Probability range unavailable';
+            const probabilityAdjusted = Boolean(ml_predictions.probability_tempering_applied);
             
-            // Determine risk level based on success probability
-            let risk_level = 'Medium';
-            if (success_prob_pct > 70) risk_level = 'Low';
-            else if (success_prob_pct < 30) risk_level = 'High';
+            // Prefer backend-provided risk_level; otherwise derive from attractiveness (consistent with tiers)
+            let risk_level = (ml_predictions.risk_level || '').trim();
+            if (!risk_level) {
+                if (attractivenessNum >= 65) risk_level = 'Low';
+                else if (attractivenessNum >= 50) risk_level = 'Medium';
+                else risk_level = 'High';
+            }
+            const riskClass = risk_level === 'Low' ? 'risk-low' : (risk_level === 'High' ? 'risk-high' : 'risk-medium');
             
-            // Determine investment tier based on attractiveness score (3-tier system)
+            // Determine investment tier based on attractiveness score (3-tier system, updated Oct 2025)
             function getInvestmentTier(score) {
                 const s = Number(score) || 0;
-                if (s >= 60) return 'Invest • High conviction';
-                if (s >= 45) return 'Monitor • Promising, watchlist';
+                if (s >= 65) return 'Invest • High conviction';
+                if (s >= 50) return 'Monitor • Promising, watchlist';
                 return 'Avoid • Risk outweighs return';
             }
             
             const tier_display = getInvestmentTier(attractiveness);
             
-            // Determine recommendation card styling based on tier
-            let recommendationCardClass = 'bg-info';
+            // Determine recommendation color coding (Invest=green, Monitor=yellow, Avoid=red)
+            let recommendationTextClass = 'text-info';
             let tierIcon = '📊';
-            
-            if (attractivenessNum >= 60) {
-                recommendationCardClass = 'bg-success';
+            if (attractivenessNum >= 65) {
+                recommendationTextClass = 'text-success';
                 tierIcon = '🟢';
-            } else if (attractivenessNum >= 45) {
-                recommendationCardClass = 'bg-warning';
+            } else if (attractivenessNum >= 50) {
+                recommendationTextClass = 'text-warning';
                 tierIcon = '🟡';
             } else {
-                recommendationCardClass = 'bg-danger';
+                recommendationTextClass = 'text-danger';
                 tierIcon = '🔴';
             }
             
             // Build enhanced analysis display with tabbed interface
             const html = `
-                <!-- Analysis Summary Cards -->
-                <div class="row mb-4 summary-cards">
-                    <div class="col-md-3">
-                        <div class="card text-center bg-warning text-white">
-                            <div class="card-body">
-                                <h4>${attractiveness}%</h4>
-                                <small>Investment Attractiveness</small>
-                            </div>
+                <!-- KPI Grid -->
+                <div class="analysis-kpi-grid mb-3" role="region" aria-label="Key Performance Indicators">
+                    <div class="kpi-card kpi-invest" role="group" aria-label="Investment Attractiveness" data-tier="${attractivenessTierKey}">
+                        <div class="kpi-title">
+                            <i class="fas fa-bullseye" aria-hidden="true"></i>
+                            <span>Investment Attractiveness</span>
+                            <i class="fas fa-info-circle info-icon" tabindex="0" role="img" aria-label="Attractiveness score from 0 to 100" data-bs-toggle="tooltip" data-bs-title="Attractiveness score from 0 to 100 based on ML model."></i>
                         </div>
+                        <div class="kpi-value" aria-label="${attractiveness}%">${attractiveness}%</div>
                     </div>
-                    <div class="col-md-3">
-                        <div class="card text-center bg-success text-white">
-                            <div class="card-body">
-                                <h4>${success_prob}%</h4>
-                                <small>Success Probability</small>
-                            </div>
+                    
+                    <div class="kpi-card kpi-reco" role="group" aria-label="Investment Recommendation">
+                        <div class="kpi-title">
+                            <i class="fas fa-thumbs-up" aria-hidden="true"></i>
+                            <span>Investment Recommendation</span>
+                            <i class="fas fa-info-circle info-icon" tabindex="0" role="img" aria-label="Tier recommendation" data-bs-toggle="tooltip" data-bs-title="Invest ≥ 65, Monitor 50–64, Avoid &lt; 50."></i>
                         </div>
+                        <div class="kpi-value ${recommendationTextClass}">${tierIcon} ${tier_display}</div>
                     </div>
-                    <div class="col-md-3">
-                        <div class="card text-center ${recommendationCardClass} text-white">
-                            <div class="card-body">
-                                <h4>${tierIcon} ${tier_display}</h4>
-                                <small>Investment Recommendation</small>
-                            </div>
+                    <div class="kpi-card kpi-risk ${riskClass}" role="group" aria-label="Risk Level">
+                        <div class="kpi-title">
+                            <i class="fas fa-exclamation-triangle" aria-hidden="true"></i>
+                            <span>Risk Level</span>
+                            <i class="fas fa-info-circle info-icon" tabindex="0" role="img" aria-label="Risk level" data-bs-toggle="tooltip" data-bs-title="Derived from component scores and market factors."></i>
                         </div>
-                    </div>
-                    <div class="col-md-3">
-                        <div class="card text-center bg-warning text-white">
-                            <div class="card-body">
-                                <h4>${risk_level}</h4>
-                                <small>Risk Level</small>
-                            </div>
-                        </div>
+                        <div class="kpi-value">${risk_level}</div>
                     </div>
                 </div>
-                
+
                 <!-- Enhanced Charts Tabs -->
-                <ul class="nav nav-tabs" id="analysisChartTabs" role="tablist">
+                <ul class="nav nav-pills analysis-tabs" id="analysisChartTabs" role="tablist">
                     <li class="nav-item" role="presentation">
-                        <button class="nav-link active" id="overview-tab" data-bs-toggle="tab" data-bs-target="#overview" type="button" role="tab">
+                        <button class="nav-link active" id="overview-tab" data-bs-toggle="tab" data-bs-target="#overview" type="button" role="tab" aria-controls="overview" aria-selected="true">
                             <i class="fas fa-chart-pie"></i> Overview
                         </button>
                     </li>
                     <li class="nav-item" role="presentation">
-                        <button class="nav-link" id="benchmarks-tab" data-bs-toggle="tab" data-bs-target="#benchmarks" type="button" role="tab">
+                        <button class="nav-link" id="benchmarks-tab" data-bs-toggle="tab" data-bs-target="#benchmarks" type="button" role="tab" aria-controls="benchmarks" aria-selected="false">
                             <i class="fas fa-chart-bar"></i> Benchmarks
                         </button>
                     </li>
                     <li class="nav-item" role="presentation">
-                        <button class="nav-link" id="fundamentals-tab" data-bs-toggle="tab" data-bs-target="#fundamentals" type="button" role="tab">
+                        <button class="nav-link" id="fundamentals-tab" data-bs-toggle="tab" data-bs-target="#fundamentals" type="button" role="tab" aria-controls="fundamentals" aria-selected="false">
                             <i class="fas fa-chart-area"></i> Fundamentals
                         </button>
                     </li>
                     <li class="nav-item" role="presentation">
-                        <button class="nav-link" id="risk-tab" data-bs-toggle="tab" data-bs-target="#risk" type="button" role="tab">
+                        <button class="nav-link" id="risk-tab" data-bs-toggle="tab" data-bs-target="#risk" type="button" role="tab" aria-controls="risk" aria-selected="false">
                             <i class="fas fa-exclamation-triangle"></i> Risk Analysis
                         </button>
                     </li>
                     <li class="nav-item" role="presentation">
-                        <button class="nav-link" id="commentary-tab" data-bs-toggle="tab" data-bs-target="#commentary" type="button" role="tab">
+                        <button class="nav-link" id="commentary-tab" data-bs-toggle="tab" data-bs-target="#commentary" type="button" role="tab" aria-controls="commentary" aria-selected="false">
                             <i class="fas fa-comments"></i> Investment Commentary
                         </button>
                     </li>
@@ -1247,22 +1274,22 @@
                     <div class="tab-pane fade show active" id="overview" role="tabpanel">
                         <div class="row mt-3">
                             <div class="col-md-6">
-                                <div class="card">
+                                <div class="card chart-card" role="region" aria-label="Deal Attractiveness">
                                     <div class="card-header">
-                                        <h5><i class="fas fa-bullseye"></i> Deal Attractiveness</h5>
+                                        <h5><i class="fas fa-bullseye" aria-hidden="true"></i> Deal Attractiveness</h5>
                                     </div>
                                     <div class="card-body">
-                                        <canvas id="attractivenessGaugeChart" width="400" height="300"></canvas>
+                                        <div class="chart-container lg"><canvas id="attractivenessGaugeChart"></canvas></div>
                                     </div>
                                 </div>
                             </div>
                             <div class="col-md-6">
-                                <div class="card">
+                                <div class="card chart-card" role="region" aria-label="Investment Components">
                                     <div class="card-header">
-                                        <h5><i class="fas fa-chart-pie"></i> Investment Components</h5>
+                                        <h5><i class="fas fa-chart-pie" aria-hidden="true"></i> Investment Components</h5>
                                     </div>
                                     <div class="card-body">
-                                        <canvas id="componentScoresChart" width="400" height="300"></canvas>
+                                        <div class="chart-container lg"><canvas id="componentScoresChart"></canvas></div>
                                     </div>
                                 </div>
                             </div>
@@ -1272,23 +1299,13 @@
                     <!-- Benchmarks Tab -->
                     <div class="tab-pane fade" id="benchmarks" role="tabpanel">
                         <div class="row mt-3">
-                            <div class="col-md-6">
-                                <div class="card">
+                            <div class="col-md-12">
+                                <div class="card chart-card" role="region" aria-label="Industry Success Rates">
                                     <div class="card-header">
-                                        <h5><i class="fas fa-chart-bar"></i> Success Probability</h5>
+                                        <h5><i class="fas fa-industry" aria-hidden="true"></i> Industry Success Rates</h5>
                                     </div>
                                     <div class="card-body">
-                                        <canvas id="successComparisonChart" width="400" height="300"></canvas>
-                                    </div>
-                                </div>
-                            </div>
-                            <div class="col-md-6">
-                                <div class="card">
-                                    <div class="card-header">
-                                        <h5><i class="fas fa-industry"></i> Industry Success Rates</h5>
-                                    </div>
-                                    <div class="card-body">
-                                        <canvas id="industrySuccessChart" width="400" height="300"></canvas>
+                                        <div class="chart-container lg"><canvas id="industrySuccessChart"></canvas></div>
                                     </div>
                                 </div>
                             </div>
@@ -1299,22 +1316,22 @@
                     <div class="tab-pane fade" id="fundamentals" role="tabpanel">
                         <div class="row mt-3">
                             <div class="col-md-6">
-                                <div class="card">
+                                <div class="card chart-card" role="region" aria-label="Business Fundamentals">
                                     <div class="card-header">
-                                        <h5><i class="fas fa-chart-area"></i> Business Fundamentals</h5>
+                                        <h5><i class="fas fa-chart-area" aria-hidden="true"></i> Business Fundamentals</h5>
                                     </div>
                                     <div class="card-body">
-                                        <canvas id="businessFundamentalsChart" width="400" height="300"></canvas>
+                                        <div class="chart-container lg"><canvas id="businessFundamentalsChart"></canvas></div>
                                     </div>
                                 </div>
                             </div>
                             <div class="col-md-6">
-                                <div class="card">
+                                <div class="card chart-card" role="region" aria-label="Key Success Factors">
                                     <div class="card-header">
-                                        <h5><i class="fas fa-chart-pie"></i> Success Factors</h5>
+                                        <h5><i class="fas fa-chart-pie" aria-hidden="true"></i> Success Factors</h5>
                                     </div>
                                     <div class="card-body">
-                                        <canvas id="featureContributionChart" width="400" height="300"></canvas>
+                                        <div class="chart-container lg"><canvas id="featureContributionChart"></canvas></div>
                                     </div>
                                 </div>
                             </div>
@@ -1325,12 +1342,12 @@
                     <div class="tab-pane fade" id="risk" role="tabpanel">
                         <div class="row mt-3">
                             <div class="col-md-8">
-                                <div class="card">
+                                <div class="card chart-card" role="region" aria-label="Risk-Return Analysis">
                                     <div class="card-header">
-                                        <h5><i class="fas fa-chart-scatter"></i> Risk-Return Analysis</h5>
+                                        <h5><i class="fas fa-chart-scatter" aria-hidden="true"></i> Risk-Return Analysis</h5>
                                     </div>
                                     <div class="card-body">
-                                        <canvas id="riskReturnChart" width="600" height="400"></canvas>
+                                        <div class="chart-container lg"><canvas id="riskReturnChart"></canvas></div>
                                     </div>
                                 </div>
                             </div>
@@ -1370,33 +1387,39 @@
                 </div>
                 
                 <!-- Company Details Section -->
-                <div class="row mt-4">
-                    <div class="col-md-12">
-                        <div class="card">
-                            <div class="card-header">
-                                <h5><i class="fas fa-table"></i> Company Overview</h5>
+                <div class="row mt-4" role="region" aria-label="Company Overview">
+                    <div class="col-md-6">
+                        <div class="card panel-card">
+                            <div class="card-header"><i class="fas fa-building"></i> Company Fundamentals</div>
+                            <div class="card-body p-0">
+                                <div class="table-responsive">
+                                    <table class="table table-striped mb-0">
+                                        <tbody>
+                                            <tr><th scope="row">Company</th><td>${company_info.name || 'Unknown'}</td></tr>
+                                            <tr><th scope="row">Industry</th><td>${company_info.industry || 'Unknown'}</td></tr>
+                                            <tr><th scope="row">Location</th><td>${company_info.location || 'Unknown'}</td></tr>
+                                            <tr><th scope="row">Funding Round</th><td>${company_info.funding_round || 'Unknown'}</td></tr>
+                                            <tr><th scope="row">Team Size</th><td>${key_metrics.team_size || 0}</td></tr>
+                                            <tr><th scope="row">Years Since Founding</th><td>${parseFloat(key_metrics.years_operating || 0).toFixed(1)}</td></tr>
+                                        </tbody>
+                                    </table>
+                                </div>
                             </div>
-                            <div class="card-body">
-                                <div class="row">
-                                    <div class="col-md-6">
-                                        <table class="table table-sm">
-                                            <tr><td><strong>Company:</strong></td><td>${company_info.name || 'Unknown'}</td></tr>
-                                            <tr><td><strong>Industry:</strong></td><td>${company_info.industry || 'Unknown'}</td></tr>
-                                            <tr><td><strong>Location:</strong></td><td>${company_info.location || 'Unknown'}</td></tr>
-                                            <tr><td><strong>Funding Round:</strong></td><td>${company_info.funding_round || 'Unknown'}</td></tr>
-                                            <tr><td><strong>Team Size:</strong></td><td>${key_metrics.team_size || 0}</td></tr>
-                                            <tr><td><strong>Years Since Founding:</strong></td><td>${parseFloat(key_metrics.years_operating || 0).toFixed(1)}</td></tr>
-                                        </table>
-                                    </div>
-                                    <div class="col-md-6">
-                                        <table class="table table-sm">
-                                            <tr><td><strong>Funding Amount:</strong></td><td>$${formatNumber(key_metrics.funding_amount || 0)}</td></tr>
-                                            <tr><td><strong>Valuation:</strong></td><td>$${formatNumber(key_metrics.valuation || 0)}</td></tr>
-                                            <tr><td><strong>Revenue:</strong></td><td>$${formatNumber(key_metrics.revenue || 0)}</td></tr>
-                                            <tr><td><strong>Market Size:</strong></td><td>$${formatNumber((key_metrics.market_size || 0) * 1e9)}</td></tr>
-                                            <tr><td><strong>Investors:</strong></td><td>${key_metrics.num_investors || 0}</td></tr>
-                                        </table>
-                                    </div>
+                        </div>
+                    </div>
+                    <div class="col-md-6">
+                        <div class="card panel-card">
+                            <div class="card-header"><i class="fas fa-dollar-sign"></i> Financial Snapshot</div>
+                            <div class="card-body p-0">
+                                <div class="table-responsive">
+                                    <table class="table table-striped mb-0">
+                                        <tbody>
+                                            <tr><th scope="row">Funding Amount</th><td>${Number(key_metrics.funding_amount||0) > 0 ? `$${formatNumber(key_metrics.funding_amount)}` : '—'}</td></tr>
+                                            <tr><th scope="row">Valuation</th><td>${Number(key_metrics.valuation||0) > 0 ? `$${formatNumber(key_metrics.valuation)}` : '—'}</td></tr>
+                                            <tr><th scope="row">Market Size</th><td>${Number(key_metrics.market_size||0) > 0 ? `$${formatNumber((key_metrics.market_size) * 1e9)}` : '—'}</td></tr>
+                                            <tr><th scope="row">Investors</th><td>${key_metrics.num_investors || 0}</td></tr>
+                                        </tbody>
+                                    </table>
                                 </div>
                             </div>
                         </div>
@@ -1405,6 +1428,7 @@
             `;
             // Inject built HTML into analysisContent
             content.innerHTML = html;
+            enableTooltips(content);
 
             // Populate risk factors
             displayRiskFactors(analysis.risk_factors || []);
@@ -1432,6 +1456,7 @@
             // Create charts after DOM is updated
             setTimeout(() => {
                 createEnhancedAnalysisCharts(analysis);
+                enableTooltips(content);
             }, 100);
         }
         
@@ -1616,9 +1641,7 @@
                 if (dashboardCharts.component_scores) {
                     createChartFromConfig('componentScoresChart', applyBrandPaletteToConfig(dashboardCharts.component_scores));
                 }
-                if (dashboardCharts.success_comparison) {
-                    createChartFromConfig('successComparisonChart', applyBrandPaletteToConfig(dashboardCharts.success_comparison));
-                }
+                
                 if (dashboardCharts.industry_success) {
                     createChartFromConfig('industrySuccessChart', applyBrandPaletteToConfig(dashboardCharts.industry_success));
                 }
@@ -1638,11 +1661,11 @@
         }
         
         function createEnhancedChartsFromPredictions(ml_predictions, key_metrics, analysis) {
-            // 1. Deal Attractiveness Gauge
+            // 1. Deal Attractiveness Gauge (updated thresholds Oct 2025: 65/50)
             const attractiveness_score = ml_predictions.attractiveness_score || 0;
             const gaugeColor = attractiveness_score >= 75 ? BRAND.success
-                              : attractiveness_score >= 60 ? BRAND.primary
-                              : attractiveness_score >= 45 ? BRAND.warning
+                              : attractiveness_score >= 65 ? BRAND.primary
+                              : attractiveness_score >= 50 ? BRAND.warning
                               : BRAND.danger;
             const attractivenessConfig = {
                 type: 'doughnut',
@@ -1689,28 +1712,7 @@
             };
             createChartFromConfig('componentScoresChart', componentConfig);
             
-            // 3. Success Probability Comparison
-            const success_prob = (ml_predictions.success_probability || 0) * 100;
-            const successConfig = {
-                type: 'bar',
-                data: {
-                    labels: ['This Deal', 'Industry Avg', 'Top Quartile'],
-                    datasets: [{
-                        label: 'Success Probability (%)',
-                        data: [success_prob, 45, 75],
-                        backgroundColor: [BRAND.primary, BRAND.neutral, BRAND.success],
-                        borderWidth: 1
-                    }]
-                },
-                options: {
-                    indexAxis: 'y',
-                    scales: { x: { max: 100, min: 0 } },
-                    plugins: { title: { display: true, text: 'Success Probability Benchmarking' } }
-                }
-            };
-            createChartFromConfig('successComparisonChart', successConfig);
-            
-            // 4. Industry Success Rates
+            // 3. Industry Success Rates
             const company_industry = analysis.company_info?.industry || 'Unknown';
             const industryConfig = {
                 type: 'bar',
@@ -1733,18 +1735,18 @@
             };
             createChartFromConfig('industrySuccessChart', industryConfig);
             
-            // 5. Business Fundamentals Radar
+            // 4. Business Fundamentals Radar (valuation replaces revenue)
             const fundamentalsConfig = {
                 type: 'radar',
                 data: {
-                    labels: ['Market Size', 'Team Strength', 'Revenue', 'Funding', 'Competition'],
+                    labels: ['Market Size', 'Team Strength', 'Valuation', 'Funding', 'Competition'],
                     datasets: [{
                         label: 'Business Fundamentals',
                         data: [
                             Math.min(100, (key_metrics.market_size || 1) * 10),
                             Math.min(100, (key_metrics.team_size || 10) * 4),
-                            Math.min(100, (key_metrics.revenue || 100000) / 10000),
-                            Math.min(100, (key_metrics.funding_amount || 1000000) / 100000),
+                            Math.min(100, (key_metrics.valuation || 0) / 2000000),
+                            Math.min(100, (key_metrics.funding_amount || 0) / 100000),
                             100 - (key_metrics.competition_level || 5) * 10
                         ],
                         backgroundColor: withAlpha(BRAND.primary, 0.15),
@@ -1763,13 +1765,13 @@
             };
             createChartFromConfig('businessFundamentalsChart', fundamentalsConfig);
             
-            // 6. Success Factors Pie Chart
+            // 5. Success Factors Pie Chart (remove revenue, include investors/efficiency)
             const factorsConfig = {
                 type: 'pie',
                 data: {
-                    labels: ['Revenue Growth', 'Market Size', 'Team Strength', 'Competition', 'Funding Efficiency'],
+                    labels: ['Market Size', 'Team Strength', 'Competition', 'Funding Efficiency', 'Investors'],
                     datasets: [{
-                        data: [25, 20, 18, 15, 12],
+                        data: [24, 22, 18, 18, 18],
                         backgroundColor: CATEGORICAL.slice(0, 5),
                         borderWidth: 1
                     }]
@@ -1780,9 +1782,10 @@
             };
             createChartFromConfig('featureContributionChart', factorsConfig);
             
-            // 7. Risk-Return Scatter Plot
+            // 6. Risk-Return Scatter Plot
             const risk_score = 100 - attractiveness_score;
-            const return_score = success_prob;
+            // Use attractiveness score as proxy for return to avoid exposing probability
+            const return_score = attractiveness_score;
             
             // Generate some peer data for context
             const peer_data = [];
@@ -1817,7 +1820,7 @@
                 options: {
                     scales: {
                         x: { title: { display: true, text: 'Risk Score' } },
-                        y: { title: { display: true, text: 'Expected Return Score' } }
+                        y: { title: { display: true, text: 'Attractiveness Score' } }
                     },
                     plugins: { title: { display: true, text: 'Risk-Return Positioning' } }
                 }
@@ -1835,14 +1838,33 @@
             }
             
             // Create new chart
+            const baseOptions = {
+                responsive: true,
+                maintainAspectRatio: false,
+                plugins: {
+                    legend: { display: true, position: 'bottom', labels: { boxWidth: 12 } },
+                    datalabels: {
+                        display: (ctx) => ['bar','pie','doughnut'].includes(chartConfig.type),
+                        color: '#1f2a44',
+                        anchor: 'end', align: 'top',
+                        formatter: (v) => typeof v === 'number' ? Math.round(v) : v
+                    }
+                },
+                scales: {
+                    x: { grid: { color: 'rgba(0,0,0,0.04)' }, ticks: { color: '#4b5563' } },
+                    y: { beginAtZero: true, grid: { color: 'rgba(0,0,0,0.06)' }, ticks: { color: '#4b5563' } }
+                }
+            };
+
+            // Merge options (simple shallow merge is fine here)
+            const options = { ...baseOptions, ...(chartConfig.options || {}) };
+            options.plugins = { ...(baseOptions.plugins||{}), ...((chartConfig.options||{}).plugins||{}) };
+            options.scales = { ...(baseOptions.scales||{}), ...((chartConfig.options||{}).scales||{}) };
+
             window[canvasId + '_instance'] = new Chart(ctx, {
                 type: chartConfig.type,
                 data: chartConfig.data,
-                options: {
-                    responsive: true,
-                    maintainAspectRatio: false,
-                    ...chartConfig.options
-                }
+                options
             });
         }
         
@@ -1907,7 +1929,41 @@
             const locationSelect = document.getElementById('locationFilter');
             if (industrySelect) industrySelect.addEventListener('change', () => searchCompanies());
             if (locationSelect) locationSelect.addEventListener('change', () => searchCompanies());
+
+            // Initialize tooltips globally for filters/info icons
+            enableTooltips(document);
+
+            // Reveal on scroll animations
+            const revealEls = document.querySelectorAll('.reveal-up');
+            const io = new IntersectionObserver((entries) => {
+                entries.forEach(e => {
+                    if (e.isIntersecting) {
+                        e.target.classList.add('reveal-in');
+                        io.unobserve(e.target);
+                    }
+                });
+            }, { threshold: 0.2 });
+            revealEls.forEach(el => io.observe(el));
         });
+
+        // Navigate to Evaluate tab and optionally preselect a tier
+        function goToEvaluate(tier) {
+            try {
+                const evalTabButton = document.getElementById('companies-tab');
+                if (evalTabButton) {
+                    const tab = new bootstrap.Tab(evalTabButton);
+                    tab.show();
+                }
+                if (tier) {
+                    const tierSelect = document.getElementById('tierFilter');
+                    if (tierSelect) {
+                        tierSelect.value = tier;
+                    }
+                }
+                // Trigger search with current or preselected filters
+                setTimeout(() => searchCompanies(), 150);
+            } catch (e) { /* no-op */ }
+        }
     </script>
     
     <!-- Company Comparison Modal -->

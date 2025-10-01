@@ -1,301 +1,201 @@
-# 🚀 Startup Deal Evaluator
+# 🚀 Deal Scout – Startup Deal Evaluator
 
-A comprehensive machine learning application for investment firms to evaluate startup deals using predictive analytics and interactive visualizations. **Now available as both Jupyter notebook and professional Flask web application!**
+An instant-start Flask web application that helps investment teams discover, benchmark, and analyze startups using an ensemble machine learning pipeline, Kaggle-powered data ingestion, and rich diagnostics.
 
-![Python](https://img.shields.io/badge/python-v3.8+-blue.svg)
-![Flask](https://img.shields.io/badge/flask-web--app-blue.svg)
-![Jupyter](https://img.shields.io/badge/jupyter-notebook-orange.svg)
-![Kaggle](https://img.shields.io/badge/kaggle-data--integration-blue.svg)
+![Python](https://img.shields.io/badge/python-3.9%2B-blue.svg)
+![Flask](https://img.shields.io/badge/flask-production--ready-blue.svg)
+![Kaggle](https://img.shields.io/badge/kaggle-integration-blue.svg)
 ![License](https://img.shields.io/badge/license-MIT-green.svg)
-![Scikit-Learn](https://img.shields.io/badge/scikit--learn-machine--learning-red.svg)
 
-## 🎯 Overview
-
-This project provides investment firms with a powerful tool to evaluate startup investment opportunities using machine learning. Available as both a Jupyter notebook for analysis and a **production-ready Flask web application** for real-time deal evaluation.
-
-## ✨ Features
-
-### 🌐 Flask Web Application (NEW!)
-- **Professional Web Interface**: Bootstrap-based responsive UI at http://localhost:5000
-- **Real-time API**: RESTful endpoints for deal evaluation and data integration  
-- **Kaggle Integration**: Optional real startup data from Kaggle datasets
-- **Interactive Dashboard**: Live charts and visualizations
-- **Example Companies**: Pre-loaded startup profiles for testing
-- **Data Source Flexibility**: Synthetic data by default, real data with Kaggle credentials
-
-### 🤖 Machine Learning Models
-- **Random Forest Classification**: Predicts startup success probability (98% accuracy)
-- **Random Forest Regression**: Estimates appropriate funding amounts (99% R² score)
-- **Feature Engineering**: Creates 56+ engineered features from raw startup data
-- **Cross-validation**: Robust model validation with statistical confidence
-
-### 📊 Interactive Analytics
-- **Real-time Deal Evaluation**: Input startup details and get instant ML predictions
-- **Investment Recommendations**: Clear buy/hold/avoid guidance based on quantitative analysis
-- **Visual Analytics**: 6-panel comprehensive analysis dashboard
-- **Industry Benchmarking**: Compare startups against industry averages
-- **Risk-Return Positioning**: Visualize investment opportunities in risk-return space
-
-## 📁 Project Structure
-
-```
-startup-deal-evaluator/
-├── startup_deal_evaluator.ipynb    # Original Jupyter notebook
-├── flask_app/                      # Production Flask web application
-│   ├── app.py                      # Main Flask application
-│   ├── model.py                    # ML models and data processing
-│   ├── templates/                  # HTML templates
-│   ├── static/                     # CSS, JS, images
-│   ├── requirements.txt            # Flask app dependencies
-│   └── Dockerfile                  # Container deployment
-├── requirements.txt                 # Notebook dependencies
-├── KAGGLE_INTEGRATION_GUIDE.md     # Kaggle setup instructions
-├── DEPLOYMENT_GUIDE.md             # Flask deployment guide
-└── docs/                           # Additional documentation
-    ├── user_guide.md               # Detailed user guide
-    └── technical_specs.md          # Technical specifications
-```
-
-## 🚀 Quick Start
-
-### Option 1: Flask Web Application (Recommended)
-```bash
-# Navigate to Flask app
-cd flask_app
-
-# Install dependencies  
-pip install -r requirements.txt
-
-# Run the web application
-python app.py
-
-# Open browser to http://localhost:5000
-```
-
-### Option 2: Jupyter Notebook
-```bash
-# Install dependencies
-pip install -r requirements.txt
-
-# Start Jupyter
-jupyter notebook startup_deal_evaluator.ipynb
-```
-
-### Prerequisites
-- Python 3.8 or higher
-- Jupyter Notebook or JupyterLab
-- Git (for cloning the repository)
-
-### Installation
-
-1. **Clone the repository**
-   ```bash
-   git clone https://github.com/yourusername/startup-deal-evaluator.git
-   cd startup-deal-evaluator
-   ```
-
-2. **Install dependencies**
-   ```bash
-   pip install -r requirements.txt
-   ```
-
-3. **Launch Jupyter Notebook**
-   ```bash
-   jupyter notebook startup_deal_evaluator.ipynb
-   ```
-
-4. **Run all cells**
-   - Execute all cells from top to bottom to set up the environment
-   - The system will automatically generate synthetic data for demonstration
-
-### Using Real Data (Optional)
-
-To use real startup datasets from Kaggle:
-
-1. Create a Kaggle account and generate API credentials
-2. Place your `kaggle.json` file in `~/.kaggle/` directory
-3. The notebook will automatically download real datasets when available
-
-## 🎮 Usage
-
-### Interactive Dashboard
-
-1. **Run the notebook**: Execute all cells to initialize the ML models
-2. **Navigate to Section K**: Find the interactive dashboard
-3. **Input startup details**:
-   - Industry and location
-   - Funding round and team size
-   - Financial metrics (funding, revenue, market size)
-   - Competition level and investor count
-4. **Click "Evaluate Deal"**: Get instant ML-powered insights
-5. **Review results**: Analyze the attractiveness score, success probability, and visualizations
-
-### Example Evaluation
-
-```python
-# Example: Evaluate a FinTech startup
-evaluation = evaluate_startup_deal(
-    industry='Fintech',
-    location='San Francisco',
-    funding_round='Series A',
-    team_size=45,
-    years_founded=2.5,
-    funding_amount=8_000_000,
-    revenue=1_500_000,
-    market_size=25.0,
-    competition_level=7,
-    num_investors=4
-)
-
-print(f"Attractiveness Score: {evaluation['attractiveness_score']:.1f}/100")
-print(f"Success Probability: {evaluation['success_probability']:.1%}")
-```
-
-## � Kaggle Integration
-
-The Flask web application supports real startup data from Kaggle for enhanced accuracy:
-
-### Data Sources
-- **Synthetic Data** (Default): High-quality generated data with realistic patterns
-- **Kaggle Data** (Optional): Real startup datasets with actual outcomes
-
-### Setup Kaggle (Optional)
-1. Get Kaggle API credentials from [kaggle.com/account](https://www.kaggle.com/account)
-2. Place `kaggle.json` in `~/.kaggle/` or the flask_app directory
-3. Restart the Flask app - it will automatically detect and use real data
-
-### Supported Datasets
-- peopleanalytics1/startup-success-prediction
-- yagnesh97/startup-dataset  
-- justinas/startup-investments
-- hossaingh/startup-company-data
-
-**See `KAGGLE_INTEGRATION_GUIDE.md` for detailed setup instructions.**
-
-## �📊 Model Performance
-
-| Model | Metric | Score |
-|-------|--------|-------|
-| Classification | Accuracy | 98-99% |
-| Classification | Precision | 99-100% |
-| Classification | Recall | 97-98% |
-| Classification | AUC-ROC | 99-100% |
-| Regression | R² Score | 99% |
-| Regression | RMSE | $4.2M |
-| Regression | MAE | $1.7M |
-
-*Performance varies slightly between synthetic and real Kaggle data*
-
-## 🔧 Key Success Factors
-
-The ML models identify these critical factors for startup success:
-
-1. **Operating Status** (43% importance) - Current operational state
-2. **Company Closure** (11% importance) - Risk indicators
-3. **IPO Potential** (10% importance) - Exit opportunity indicators
-4. **Funding Amount** (3% importance) - Capital availability
-5. **Company Age** (2.5% importance) - Maturity and experience
-
-## 🎨 Visualizations
-
-The system provides comprehensive visualizations including:
-
-- **Deal Attractiveness Gauge**: 0-100 scoring with risk categories
-- **Success Probability Charts**: Comparison with industry benchmarks
-- **Feature Contribution Analysis**: Understanding model decisions
-- **Industry Landscape Mapping**: Competitive positioning
-- **Risk-Return Quadrants**: Investment opportunity classification
-- **Market Factor Analysis**: Business fundamentals assessment
-
-## 🔄 Customization
-
-### Adding New Industries
-```python
-# Update the synthetic data generator
-industries = ['Fintech', 'Healthcare', 'Your New Industry']
-```
-
-### Adjusting Scoring Weights
-```python
-# Modify the attractiveness score calculation
-attractiveness_score = (
-    success_probability * 40 +      # Success weight (40%)
-    revenue_factor * 20 +           # Revenue weight (20%)
-    market_opportunity * 20 +       # Market weight (20%)
-    team_factor * 10 +              # Team weight (10%)
-    investor_interest * 10          # Investor weight (10%)
-)
-```
-
-### Model Hyperparameters
-```python
-# Tune Random Forest parameters
-rf_classifier = RandomForestClassifier(
-    n_estimators=100,    # Number of trees
-    max_depth=10,        # Maximum tree depth
-    min_samples_split=5, # Minimum samples to split
-    random_state=42
-)
-```
-
-## 📈 Use Cases
-
-### For Investment Firms
-- **Deal Screening**: Quickly evaluate multiple startup opportunities
-- **Risk Assessment**: Understand key risk factors and mitigation strategies
-- **Portfolio Optimization**: Compare deals across industries and stages
-
-### For Startup Accelerators
-- **Application Review**: Streamline startup selection process
-- **Mentorship Focus**: Identify areas where startups need support
-- **Success Prediction**: Allocate resources to highest-potential companies
-
-### For Entrepreneurs
-- **Self-Assessment**: Understand how investors might evaluate your startup
-- **Improvement Areas**: Identify factors to increase investor attractiveness
-- **Market Positioning**: Compare against industry benchmarks
-
-## 🤝 Contributing
-
-Contributions are welcome! Please feel free to submit a Pull Request. For major changes, please open an issue first to discuss what you would like to change.
-
-1. Fork the Project
-2. Create your Feature Branch (`git checkout -b feature/AmazingFeature`)
-3. Commit your Changes (`git commit -m 'Add some AmazingFeature'`)
-4. Push to the Branch (`git push origin feature/AmazingFeature`)
-5. Open a Pull Request
-
-## 📄 License
-
-This project is licensed under the MIT License - see the [LICENSE](LICENSE) file for details.
-
-## 🙏 Acknowledgments
-
-- **Scikit-learn** for machine learning capabilities
-- **Pandas** for data manipulation and analysis
-- **Matplotlib & Seaborn** for data visualization
-- **Jupyter** for the interactive notebook environment
-- **IPywidgets** for interactive dashboard components
-
-## 📞 Support
-
-If you have any questions or need support:
-
-1. Check the [User Guide](docs/user_guide.md) for detailed instructions
-2. Review the [Technical Specifications](docs/technical_specs.md) for implementation details
-3. Open an issue on GitHub for bug reports or feature requests
-
-## 🔮 Future Enhancements
-
-- [ ] Real-time data integration with startup databases
-- [ ] Sector-specific evaluation models
-- [ ] Advanced ensemble methods for improved accuracy
-- [ ] Web application deployment
-- [ ] API endpoints for programmatic access
-- [ ] Enhanced visualization with interactive plots
-- [ ] Multi-language support
-- [ ] Integration with investment management platforms
+> **📘 New to Deal Scout?** Start with [DOCUMENTATION_INDEX.md](DOCUMENTATION_INDEX.md) for complete navigation.  
+> **📊 Recent Updates?** See [OCTOBER_2025_UPDATES.md](OCTOBER_2025_UPDATES.md) for latest scoring and performance improvements.  
+> **⚡ Quick Reference?** Check [QUICK_REFERENCE.md](QUICK_REFERENCE.md) for commands and tier thresholds.
 
 ---
 
-**⭐ If you find this project useful, please consider giving it a star on GitHub!**
+## 🎯 What’s Inside
+
+- **Responsive web UI** with company catalog, tier filters, and a full-screen deal analysis workspace.
+- **REST + diagnostics APIs** for company search (`/api/companies`), deep dives, admin cache workflows, and health probes.
+- **Instant-start ML runtime** that boots in seconds, warms in the background, and persists models/tier precomputes to disk.
+- **KaggleHub + offline data pipeline** with automatic credential discovery, cached `investments_VC.csv` failsafes, and synthetic fallbacks.
+- **PowerShell + shell tooling** for reproducible startup (`run_web_app.ps1`), smoke tests, and automation scripts.
+
+---
+
+## 🧭 Architecture Snapshot
+
+```
+Deal Scout
+├── flask_app/
+│   ├── app.py                 # Flask routes, API, admin diagnostics
+│   ├── model.py               # ML pipeline, Kaggle ingestion, caching
+│   ├── templates/             # Jinja2 templates (index, error, admin banner)
+│   ├── static/                # CSS/JS/assets for the UI
+│   ├── run_web_app.ps1        # Instant-start bootstrap script (Windows)
+│   ├── start_server.ps1/.sh   # Deployment helpers
+│   └── requirements.txt       # Runtime dependencies
+├── docs/                      # Product + technical documentation
+│   ├── user_guide.md          # UI walkthrough
+│   ├── technical_specs.md     # ML + system design reference
+│   └── project_summary.md     # Executive summary
+├── DEPLOYMENT_GUIDE.md        # GitHub + hosting instructions
+├── KAGGLE_INTEGRATION_GUIDE.md# Detailed credential setup
+├── KAGGLEHUB_INTEGRATION_COMPLETE.md
+├── FLASK_CONVERSION_GUIDE.md  # Notebook-to-Flask history and tips
+├── startup_deal_evaluator.ipynb (legacy)  # Original notebook for reference only
+└── requirements.txt           # Notebook dependency snapshot
+```
+
+> The notebook remains in the repo for historical reference; the supported experience is the Flask web application.
+
+---
+
+## ⚙️ Getting Started
+
+### 1. Launch with the PowerShell Bootstrap (Windows)
+
+```powershell
+cd "c:\Users\jamie\OneDrive\Documents\Deal Scout\flask_app"
+.\run_web_app.ps1
+```
+
+The script will:
+
+- Ensure Python is present and create a local virtual environment (unless `USE_VENV=0`).
+- Install pinned dependencies.
+- Enable the instant-start defaults (fast bootstrap, lazy training, probability tempering, caching).
+- Auto-load Kaggle credentials from `flask_app/kaggle.json` when available.
+- Launch the Flask development server on http://localhost:5000 with auto-reload enabled.
+
+### 2. Manual Setup (Cross-platform)
+
+```powershell
+cd "c:\Users\jamie\OneDrive\Documents\Deal Scout\flask_app"
+python -m venv venv
+.\venv\Scripts\Activate.ps1
+pip install --upgrade pip
+pip install -r requirements.txt
+set FLASK_ENV=development
+set AUTO_TRAIN_ON_IMPORT=false
+python app.py
+```
+
+> For macOS/Linux replace the PowerShell commands with the equivalent `source venv/bin/activate` workflow and environment exports.
+
+---
+
+## 🌐 Web Experience
+
+- **Company Explorer:** Paginated grid with search, raw/normalized industry filters, region filters, funding round, success status, and attractiveness tier selectors (Invest ≥65%, Monitor 50-64%, Avoid <50%). Tiers are precomputed for instant filtering.
+- **Deal Analysis Modal:** One-click deep dive per company, component score breakdowns, radar charts, risk factors, and investment commentary.
+- **Admin Banner:** Quick links for Kaggle status, data source, tier precompute triggers, and cache clearing.
+- **Diagnostics Overlay:** `/__debug/info`, `/__routes`, and `/api/diagnostics/*` endpoints surface build IDs, cache health, and score distribution audits.
+- **Instant-start workflows:** Background training keeps the UI responsive; tier score caches persist across restarts.
+
+---
+
+## 🧠 Machine Learning Pipeline
+
+- **Ensemble classification**: grid-searched RandomForest, HistGradientBoosting, ExtraTrees, Logistic Regression, and soft voting with tuned probability thresholds.
+- **Regression models** for funding and valuation recommendations, trained on aligned feature matrices.
+- **Feature engineering**: consolidated industry/region groupings, efficiency ratios, log transforms, categorical encodings, and probability tempering to avoid contradictory risk labels.
+- **Tier Thresholds (Updated Oct 2025)**: Invest ≥65%, Monitor 50-64%, Avoid <50% - calibrated for realistic VC funnel distribution (25% / 45% / 30%).
+- **Caching strategy**: model artifacts + tier precomputes stored under `flask_app/.model_cache/` with SHA-based signatures; admin endpoints manage lifecycle.
+
+---
+
+## 📡 API Surface
+
+| Endpoint | Method | Description |
+| --- | --- | --- |
+| `/api/companies` | GET | Company catalog with pagination, search, filters, and optional tier constraint. |
+| `/api/companies/<company_id>` | GET | Raw company metrics + derived efficiency ratios. |
+| `/api/companies/<company_id>/analyze` | GET | Full ML analysis package with charts, component scores, and risk flags. |
+| `/api/companies/compare` | POST | Batch comparison for selected company IDs. |
+| `/api/companies/analyze` | POST | Batch ML analysis (JSON payload of IDs). |
+| `/api/data-source` | GET | Data provenance (synthetic vs Kaggle) and dataset health. |
+| `/api/diagnostics/*` | GET | Training status, score distribution, coherence audits. |
+| `/api/admin/precompute` | POST | Force tier precomputation; optional cache persistence toggle. |
+| `/api/admin/cache/clear` | POST | Drop analysis caches in-memory and/or on disk. |
+| `/__routes`, `/__debug/info` | GET | Runtime insight into registered routes and template state. |
+| `/health`, `/api/test-*` | GET | Health check and smoke endpoints. |
+
+> Legacy notebook endpoints such as `/api/evaluate` are no longer part of the supported API surface.
+
+---
+
+## 📊 Data Sources & Kaggle Integration
+
+- **Default:** Synthetic dataset generated at boot for environments without credentials.
+- **KaggleHub:** Automatic download of `arindam235/startup-investments-crunchbase`; cached to `flask_app/kaggle_data/` for offline re-use.
+- **Credential discovery:** Environment variables `KAGGLE_USERNAME`/`KAGGLE_KEY` or `flask_app/kaggle.json`.
+- **Fallback:** Bundled `investments_VC.csv` used when Kaggle requests fail or rate-limit.
+
+Refer to:
+
+- `KAGGLE_INTEGRATION_GUIDE.md` – API token setup, directory structure.
+- `KAGGLEHUB_INTEGRATION_COMPLETE.md` – Operational checklist when running on Kaggle notebooks/VMs.
+
+---
+
+## 🧪 Tooling & Scripts
+
+| Script | Location | Purpose |
+| --- | --- | --- |
+| `run_web_app.ps1` | `flask_app/` | One-click setup and launch on Windows (venv, deps, env vars). |
+| `start_server.ps1` / `.sh` | `flask_app/` | Production-style launcher without installer logic. |
+| `_tools/smoke_test.py` & friends | `flask_app/_tools/` | Smoke tests, data verification utilities. |
+| `setup_deployment.ps1` / `.sh` | repo root | Helpers for packaging and deployment scaffolding. |
+
+---
+
+## 📚 Documentation Map
+
+- **[DOCUMENTATION_INDEX.md](DOCUMENTATION_INDEX.md)** ⭐ **Complete navigation guide** to all documentation
+- **[OCTOBER_2025_UPDATES.md](OCTOBER_2025_UPDATES.md)** - Latest scoring, performance, and UI updates
+- [User Guide](docs/user_guide.md) – How to use the web UI, company explorer, and analysis workflows.
+- [Technical Specs](docs/technical_specs.md) – Architecture diagrams, feature engineering, ML configuration.
+- [Project Summary](docs/project_summary.md) – Executive overview for stakeholders.
+- [Deployment Guide](DEPLOYMENT_GUIDE.md) – GitHub publishing, Docker/Gunicorn/Waitress notes, CI hooks.
+- [Flask Conversion Guide](FLASK_CONVERSION_GUIDE.md) – Migration notes from the original notebook.
+- [Fixes Summary](FIXES_SUMMARY.md) – Recent bug fixes and improvements.
+
+---
+
+## 🤝 Contributing
+
+1. Fork the repository.
+2. Create a branch (`git checkout -b feature/your-feature`).
+3. Run smoke tests and linting (`pytest`, `python -m compileall`, etc.).
+4. Submit a pull request referencing updated documentation or test coverage.
+
+> Contributions should preserve the instant-start defaults, keep probability tempering coherent, and include documentation updates when surfaces change.
+
+---
+
+## 📜 License & Attribution
+
+Licensed under the MIT License – see [LICENSE](LICENSE).
+
+Built with:
+
+- Flask, Jinja2, and Bootstrap for the web layer
+- pandas, scikit-learn, seaborn, matplotlib for analytics
+- KaggleHub for dataset access and caching
+
+---
+
+## 🛣️ Roadmap Highlights
+
+- Enhanced multi-model ensembles with time-series drift monitoring.
+- Streaming data connectors (Crunchbase Live, PitchBook APIs, etc.).
+- Enterprise SSO, role-based access, and audit logging.
+- Front-end componentization (React/Vue) backed by the existing REST APIs.
+- Expanded admin console with cache status, training controls, and queue metrics.
+
+Have feedback or questions? Open an issue or reach out through the project discussion board.
+
+---
+
+**If Deal Scout saves your diligence team time, we’d love a ⭐ on GitHub.**

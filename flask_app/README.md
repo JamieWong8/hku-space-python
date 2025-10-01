@@ -1,262 +1,200 @@
-# Startup Deal Evaluator Flask Web Application
-
-## 🚀 Quick Start
-
-This directory contains the Flask web application version of the Startup Deal Evaluator, converted from the Jupyter notebook.
-
-### Prerequisites
-
-- Python 3.8 or higher
-- pip (Python package installer)
-
-### Installation & Running
-
-#### Option 1: Automated Setup (Recommended)
-```powershell
-# Navigate to the flask_app directory
-cd flask_app
-
-# Run the automated setup script
-.\run_web_app.ps1
-```
-
-#### Option 2: Manual Setup
-```powershell
-# Navigate to the flask_app directory
-cd flask_app
-
-# Create virtual environment
-python -m venv venv
-
-# Activate virtual environment
-.\venv\Scripts\Activate.ps1  # Windows
-# source venv/bin/activate    # macOS/Linux
-
-# Install dependencies
-pip install -r requirements.txt
-
-# Run the application
-python app.py
-```
-
-### Accessing the Application
-
-Once started, the web application will be available at:
-- **Main Interface:** http://localhost:5000
-- **API Endpoint:** http://localhost:5000/api/evaluate
-- **Health Check:** http://localhost:5000/health
-
-## 🌟 Features
-
-### Web Interface
-- **Interactive Dashboard:** Professional Bootstrap-based UI
-- **Real-time Evaluation:** Instant startup analysis with sliders and forms
-- **Visual Analytics:** Comprehensive 6-panel analysis dashboard
-- **Example Library:** Pre-loaded startup scenarios for testing
-- **Responsive Design:** Works on desktop, tablet, and mobile
-
-### API Endpoints
-- `POST /api/evaluate` - Evaluate startup deals
-- `GET /api/examples` - Get example startup data
-- `GET /api/visualizations/<id>` - Generate analysis charts
-- `GET /api/market-data` - Market analysis data
-- `GET /health` - Application health check
-
-### Machine Learning
-- **Random Forest Models:** 99.4% accuracy classification and regression
-- **56+ Features:** Comprehensive feature engineering pipeline
-- **Real-time Predictions:** Instant success probability and funding predictions
-- **Risk Assessment:** Automated investment recommendations
-
-## 📁 Project Structure
-
-```
-flask_app/
-├── app.py                  # Main Flask application
-├── model.py               # ML models and data processing
-├── requirements.txt       # Python dependencies
-├── Dockerfile            # Docker containerization
-├── run_web_app.ps1       # Automated setup script
-├── templates/
-│   ├── index.html        # Main web interface
-│   └── error.html        # Error page template
-└── static/
-    ├── css/             # Custom stylesheets
-    ├── js/              # JavaScript files
-    └── images/          # Static images
-```
-
-## 🔧 Configuration
-
-### Environment Variables
-- `FLASK_APP=app.py` - Flask application entry point
-- `FLASK_ENV=development` - Development mode (set to `production` for deployment)
-
-### Customization
-- Modify `model.py` to update ML algorithms or add new features
-- Edit `templates/index.html` to customize the user interface
-- Update `app.py` to add new API endpoints or modify routing
-
-## 🚀 Deployment Options
-
-### Local Development
-```powershell
-python app.py
-```
-
-### Docker Deployment
-```powershell
-# Build Docker image
-docker build -t startup-evaluator-web .
-
-# Run container
-docker run -p 5000:5000 startup-evaluator-web
-```
-
-### Production Deployment
-```powershell
-# Using Gunicorn (recommended for production)
-pip install gunicorn
 gunicorn -w 4 -b 0.0.0.0:5000 app:app
-
-# Using Waitress (Windows-friendly)
 pip install waitress
-waitress-serve --port=5000 app:app
-```
+# Deal Scout Flask Application
 
-### Cloud Deployment
-The application is ready for deployment on:
-- **Heroku:** Push to Heroku with included Dockerfile
-- **AWS ECS/Fargate:** Use Docker container
-- **Google Cloud Run:** Deploy with Cloud Build
-- **Azure Container Instances:** Deploy Docker image
-
-## 📊 API Usage Examples
-
-### Evaluate Startup Deal
-```javascript
-fetch('/api/evaluate', {
-    method: 'POST',
-    headers: {
-        'Content-Type': 'application/json',
-    },
-    body: JSON.stringify({
-        company_name: 'TechCorp',
-        industry: 'SaaS',
-        location: 'San Francisco',
-        funding_round: 'Series A',
-        funding_amount_usd: 5000000,
-        valuation_usd: 75000000,
-        team_size: 25,
-        years_since_founding: 2.0,
-        revenue_usd: 500000,
-        num_investors: 3,
-        competition_level: 5,
-        market_size_billion_usd: 10.0
-    })
-})
-.then(response => response.json())
-.then(data => console.log(data));
-```
-
-### Response Format
-```json
-{
-    "company_name": "TechCorp",
-    "attractiveness_score": 65.4,
-    "success_probability": 0.743,
-    "predicted_funding": 4850000,
-    "recommendation": "🟡 BUY - Good investment with manageable risks",
-    "insights": [
-        "Above-average success probability with solid business foundation",
-        "Conservative funding request - good value opportunity",
-        "Large addressable market with manageable competition"
-    ],
-    "risk_level": "Medium",
-    "investment_tier": "Tier 2",
-    "timestamp": "2025-09-20T15:30:45"
-}
-```
-
-## 🔍 Troubleshooting
-
-### Common Issues
-
-1. **Port already in use:**
-   ```powershell
-   # Change port in app.py or kill existing process
-   netstat -ano | findstr :5000
-   taskkill /PID <PID> /F
-   ```
-
-2. **Missing dependencies:**
-   ```powershell
-   pip install --upgrade pip
-   pip install -r requirements.txt
-   ```
-
-3. **Memory issues with large datasets:**
-   - Reduce model complexity in `model.py`
-   - Limit concurrent requests
-   - Use production WSGI server
-
-4. **Visualization errors:**
-   - Ensure matplotlib backend is set to 'Agg'
-   - Check memory usage for chart generation
-   - Verify image paths and permissions
-
-### Performance Optimization
-
-1. **Model Caching:** Models are loaded once at startup
-2. **Image Optimization:** Charts are generated on-demand
-3. **Request Handling:** Async processing for better concurrency
-4. **Memory Management:** Automatic cleanup of matplotlib figures
-
-## 📈 Monitoring & Logging
-
-### Health Monitoring
-```powershell
-# Check application health
-curl http://localhost:5000/health
-```
-
-### Performance Metrics
-- Response time tracking in Flask logs
-- Model prediction latency monitoring
-- Memory usage tracking for chart generation
-
-## 🔐 Security Considerations
-
-### Production Security
-- Set `FLASK_ENV=production` for production deployment
-- Use HTTPS in production environments
-- Implement rate limiting for API endpoints
-- Validate and sanitize all input data
-- Use secure session management
-
-### Data Privacy
-- All processing happens locally/server-side
-- No external data transmission
-- Configurable data retention policies
-- Secure API key management for external services
-
-## 🤝 Contributing
-
-To contribute to the Flask web application:
-
-1. Make changes to the Flask app files
-2. Test locally using `python app.py`
-3. Update documentation if needed
-4. Submit pull request with changes
-
-## 📞 Support
-
-For issues specific to the Flask web application:
-- Check the application logs in the terminal
-- Verify all dependencies are installed correctly
-- Ensure Python version compatibility (3.8+)
-- Test API endpoints using the `/health` endpoint
+This directory hosts the Deal Scout web application: a product| Symp| Symptom | Suggested Checks |
+| --- | --- |
+| Server boots slowly | Confirm `AUTO_TRAIN_ON_IMPORT=false`, ensure `.model_cache/` is populated, inspect logs for Kaggle download delays. Current default: 400 rows for ~30-60s startup. |
+| Tier filter returns empty list | Wait for training to complete (tiers auto-precompute after training), verify `precomputed_*` columns exist, inspect `/api/diagnostics/score-distribution`. |
+| High probability but "Avoid" tier | Check `/api/diagnostics/coherence-audit` and adjust `PROB_TEMPER_*` env vars if needed. Note: New thresholds are Invest ≥65%, Monitor 50-64%, Avoid <50%. |
+| Kaggle download failures | Review logs, ensure `KAGGLE_USERNAME/KEY` set, confirm connectivity; fallback uses cached CSV. |
+| Memory pressure from Matplotlib | Confirm `matplotlib.use('Agg')` and that figures are closed (already enforced in `app.py`). |uggested Checks |
+| --- | --- |
+| Server boots slowly | Confirm `AUTO_TRAIN_ON_IMPORT=false`, ensure `.model_cache/` is populated, inspect logs for Kaggle download delays. |
+| Tier filter returns empty list | Wait for training to complete (tiers auto-precompute after training), verify `precomputed_*` columns exist, inspect `/api/diagnostics/score-distribution`. |
+| High probability but "Avoid" tier | Check `/api/diagnostics/coherence-audit` and adjust `PROB_TEMPER_*` env vars if needed. |
+| Kaggle download failures | Review logs, ensure `KAGGLE_USERNAME/KEY` set, confirm connectivity; fallback uses cached CSV. |
+| Memory pressure from Matplotlib | Confirm `matplotlib.use('Agg')` and that figures are closed (already enforced in `app.py`). |dy Flask stack with instant-start ML models, cached diagnostics, and Kaggle-aware data ingestion.
 
 ---
 
-**🎉 Your Startup Deal Evaluator is now accessible as a professional web application!**
+## 🛠️ Quick Launch
+
+### Windows (recommended)
+
+```powershell
+cd "c:\Users\jamie\OneDrive\Documents\Deal Scout\flask_app"
+.\run_web_app.ps1
+```
+
+The bootstrap script will:
+
+- Create/activate `venv/` (unless `USE_VENV=0`).
+- Install pinned dependencies via `requirements.txt`.
+- Set instant-start environment defaults (`AUTO_TRAIN_ON_IMPORT=false`, `BOOTSTRAP_FAST=true`, etc.).
+- Source Kaggle credentials from `kaggle.json` if present.
+- Launch the Flask dev server on http://localhost:5000.
+
+### Manual setup (cross-platform)
+
+```powershell
+python -m venv venv
+.\venv\Scripts\Activate.ps1   # macOS/Linux: source venv/bin/activate
+pip install --upgrade pip
+pip install -r requirements.txt
+set FLASK_ENV=development
+set AUTO_TRAIN_ON_IMPORT=false
+python app.py
+```
+
+Optional environment toggles:
+
+- `PRECOMPUTE_MAX_ROWS=400` – limit initial precompute rows for faster warmup (default: 400 rows for 30-60s startup).
+- `CACHE_MODELS=false` – bypass on-disk model cache.
+- `SKIP_KAGGLE=true` – force synthetic dataset even when credentials exist.
+
+---
+
+## 🧭 Application Layout
+
+```
+flask_app/
+├── app.py                 # Flask routes, REST + diagnostics endpoints
+├── model.py               # ML pipeline, Kaggle ingestion, caching, precompute
+├── templates/
+│   ├── index.html         # Main UI
+│   ├── error.html         # Error page
+│   └── ...
+├── static/
+│   ├── css/
+│   ├── js/
+│   └── images/
+├── run_web_app.ps1        # Windows bootstrapper
+├── start_server.ps1/.sh   # Minimal launch scripts for deployments
+├── requirements.txt       # Runtime dependencies
+├── kaggle_data/           # Cached Kaggle datasets (created on demand)
+├── .model_cache/          # Persisted model + tier artifacts (created on demand)
+└── _tools/                # Smoke tests, diagnostics helpers
+```
+
+---
+
+## 🌐 Core Features
+
+- **Company Explorer:** `/api/companies` powers the UI catalog with pagination, search, consolidated industry groups, regions, funding rounds, status, and tier filtering. Investment tiers use stricter thresholds (Invest ≥65%, Monitor 50-64%, Avoid <50%) calibrated for realistic VC funnel distribution.
+- **Deal Analysis Modal:** `/api/companies/<id>/analyze` returns component scores, business fundamentals radar, risk commentary, and chart payloads.
+- **Admin Utilities:**
+  - `/api/admin/precompute` – warm attractiveness tiers and persist to cache (default: 400 rows for fast startup).
+  - `/api/admin/cache/clear` – drop analysis caches in memory/disk.
+  - `/api/data-source` – confirm Kaggle/synthetic dataset provenance.
+- **Diagnostics:** `/__debug/info`, `/__routes`, `/api/diagnostics/*` provide build IDs, cache status, score distributions, and coherence audits.
+- **Instant-start ML:** background threads continue training while the UI remains responsive; probability tempering ensures tier labels align with displayed probabilities.
+
+---
+
+## 🔌 Key Environment Flags
+
+| Variable | Default | Description |
+| --- | --- | --- |
+| `AUTO_TRAIN_ON_IMPORT` | `false` | Skip heavyweight model training during module import. |
+| `BOOTSTRAP_FAST` | `true` | Use lightweight bootstrap models until background training finishes. |
+| `LAZY_BACKGROUND_TRAIN` | `true` | Spawn background training thread post-startup. |
+| `PRECOMPUTE_MAX_ROWS` | `400` | Row cap for initial precompute (optimized for 30-60s startup). |
+| `CACHE_MODELS` | `true` | Persist/load models and tiers under `.model_cache/`. |
+| `PROB_TEMPER_*` | See script | Temper probability outputs to avoid contradictory tiers. |
+| `SKIP_KAGGLE` | `false` | Force synthetic data by default. |
+| `KAGGLE_USERNAME`, `KAGGLE_KEY` | n/a | API credentials when not using `kaggle.json`. |
+
+**Note:** Tier precomputation now happens automatically after both bootstrap and full model training, eliminating the need for manual precompute triggers. The training banner and manual precompute controls have been removed from the UI for a cleaner experience.
+
+Environment variables may be set in the shell or ahead of script execution:
+
+```powershell
+$env:PRECOMPUTE_MAX_ROWS = '400'
+$env:CACHE_MODELS = 'true'
+.\run_web_app.ps1
+```
+
+---
+
+## 📡 REST + Diagnostics API
+
+| Endpoint | Method | Purpose |
+| --- | --- | --- |
+| `/api/companies` | GET | Catalog with filters: page, per_page, search, industry, industry_group, region, funding_round, status, tier (Invest/Monitor/Avoid: 65/50 thresholds). |
+| `/api/companies/<company_id>` | GET | Raw metrics + derived efficiency ratios. |
+| `/api/companies/<company_id>/analyze` | GET | Full analysis package with component scores and chart data. |
+| `/api/companies/analyze` | POST | Batch analysis – payload `{ "company_ids": [...] }`. |
+| `/api/companies/compare` | POST | Return raw metrics for side-by-side comparison. |
+| `/api/data-source` | GET | Indicates synthetic vs Kaggle dataset and dataset health stats. |
+| `/api/diagnostics/training-status` | GET | Background training + cache status. |
+| `/api/diagnostics/score-distribution` | GET | Summary stats for attractiveness scores (see tier distribution). |
+| `/api/diagnostics/coherence-audit` | GET | Detect mismatches between tiers and probabilities. |
+| `/api/admin/precompute` | POST | Trigger tier precompute (`{"max_rows": int, "save_to_disk": bool}`). Default: 400 rows. |
+| `/api/admin/cache/clear` | POST | Clear caches (`{"disk": bool, "scope": "all"}`). |
+| `/__debug/info`, `/__routes` | GET | Template/route diagnostics with build ID. |
+| `/health` | GET | Lightweight health probe. |
+
+Payload/response formats are returned as JSON. See `docs/user_guide.md` for UI flows that consume these endpoints.
+
+---
+
+## 🗃️ Data & Caching
+
+- **Kaggle ingestion:** `model.py` attempts KaggleHub download of `arindam235/startup-investments-crunchbase`, then merges/normalizes company data. If Kaggle is unavailable, it falls back to the bundled `kaggle_data/investments_VC.csv` or synthetic generation.
+- **Cache directory:** `.model_cache/` stores (a) model .pkl files and metadata, (b) precomputed tier DataFrame snapshots, and (c) serialized analysis cache. Safe to delete when you need a full rebuild.
+- **Analysis cache:** In-memory `ANALYSIS_CACHE` keyed by company_id to avoid re-computation; cleared via admin API or restart.
+
+---
+
+## 🧪 Testing & Utilities
+
+- `python -m pytest` (from repo root) – executes unit and smoke tests (see `test_*.py`).
+- `_tools/smoke_test.py` – lightweight checks that endpoints respond with expected structure.
+- `_tools/verify_funding_and_valuation.py` – validates ingestion data for missing/invalid funding totals.
+
+When modifying ML logic or templates, run the smoke tools before opening a PR.
+
+---
+
+## 🚀 Deployment Notes
+
+- **Gunicorn/Waitress**: For production, run `gunicorn app:app` or `waitress-serve --port=5000 app:app` with `AUTO_TRAIN_ON_IMPORT=false`. Tiers are automatically precomputed after model training completes.
+- **Docker**: The included `Dockerfile` supplies a slim container; ensure Kaggle credentials are mounted via secrets and that `/app/.model_cache` is writable if you want persistent caching.
+- **CI/CD**: Incorporate `python -m compileall`, `pytest`, and optionally the smoke scripts in pipelines before deploying.
+
+---
+
+## 🛠️ Troubleshooting Cheatsheet
+
+| Symptom | Suggested Checks |
+| --- | --- |
+| Server boots slowly | Confirm `AUTO_TRAIN_ON_IMPORT=false`, ensure `.model_cache/` is populated, inspect logs for Kaggle download delays. |
+| Tier filter returns empty list | Run `/api/admin/precompute`, verify `precomputed_*` columns exist, inspect `/api/diagnostics/score-distribution`. |
+| High probability but “Avoid” tier | Check `/api/diagnostics/coherence-audit` and adjust `PROB_TEMPER_*` env vars if needed. |
+| Kaggle download failures | Review logs, ensure `KAGGLE_USERNAME/KEY` set, confirm connectivity; fallback uses cached CSV. |
+| Memory pressure from Matplotlib | Confirm `matplotlib.use('Agg')` and that figures are closed (already enforced in `app.py`). |
+
+---
+
+## 🤝 Contributing
+
+1. Update or add tests in `test_*.py` when altering API behavior.
+2. Run the smoke tools and capture key outputs in the PR description.
+3. Update documentation (this file, root README, or docs/ guides) when endpoints or workflows change.
+4. Follow pep8/black formatting for Python files.
+
+---
+
+## 📞 Support & Resources
+
+- [../README.md](../README.md) – Portfolio-level overview and roadmap.
+- [../docs/user_guide.md](../docs/user_guide.md) – UI walkthrough for non-technical stakeholders.
+- [../docs/technical_specs.md](../docs/technical_specs.md) – ML architecture, feature sets, deployment diagrams.
+- `/debug_log.txt`, `/error_debug.txt` – rotation-friendly logs written by the app for diagnostics.
+
+Tier precomputation is now fully automatic. The training banner has been removed for a cleaner user experience—tiers are computed immediately after bootstrap and full model training completes.
+
+---
+
+**Deal Scout keeps improving—submit ideas or issues via GitHub and help us build smarter startup diligence workflows.**

@@ -1,0 +1,14 @@
+{
+	"version": "2.0.0",
+	"tasks": [
+		{
+			"label": "Run Flask smoke test snippet",
+			"type": "shell",
+			"command": "C:\\Users\\jamie\\OneDrive\\Documents\\Deal Scout\\venv\\Scripts\\python.exe",
+			"args": [
+				"-c",
+				"from app import app; c=app.test_client(); import json; r=c.get('/api/companies'); print('status',r.status_code); print('json',r.is_json); d=r.get_json() if r.is_json else {}; print('companies',len(d.get('companies',[]))); print('sample_recommendation', (d.get('companies',[{}])[0] or {}).get('recommendation','NO_REC'))"
+			]
+		}
+	]
+}
