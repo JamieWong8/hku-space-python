@@ -1,7 +1,8 @@
 # 🚀 Deal> **📘 New to Deal Scout?** Start with [DOCUMENTATION_INDEX.md](DOCUMENTATION_INDEX.md) for complete navigation.  
 > **🚀 Quick Start?** See [QUICK_START_GUIDE.md](QUICK_START_GUIDE.md) to get started in 2 minutes!  
 > **🔄 How It Works?** Read [flask_app/WORKFLOW_SIMPLE.md](flask_app/WORKFLOW_SIMPLE.md) for plain-English explanation or [flask_app/WORKFLOW_GUIDE.md](flask_app/WORKFLOW_GUIDE.md) for technical details!  
-> **🌐 Public Deployment?** Check [flask_app/NGROK_DEPLOYMENT_GUIDE.md](flask_app/NGROK_DEPLOYMENT_GUIDE.md) to deploy via ngrok in minutes!out – Startup Deal Evaluator
+> **� How Accurate?** Check [flask_app/ACCURACY_GUIDE.md](flask_app/ACCURACY_GUIDE.md) to understand predictions, validation, and limitations!  
+> **�🌐 Public Deployment?** Check [flask_app/NGROK_DEPLOYMENT_GUIDE.md](flask_app/NGROK_DEPLOYMENT_GUIDE.md) to deploy via ngrok in minutes!out – Startup Deal Evaluator
 
 An instant-start Flask web application that helps investment teams discover, benchmark, and analyze startups using an ensemble machine learning pipeline, Kaggle-powered data ingestion, and rich diagnostics.
 
