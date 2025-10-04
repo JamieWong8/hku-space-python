@@ -1,0 +1,68 @@
+# Python
+__pycache__/
+*.py[cod]
+*$py.class
+*.so
+*.egg
+*.egg-info/
+dist/
+build/
+.eggs/
+.Python
+
+# Virtual Environments (prevent duplicates)
+venv/
+.venv/
+env/
+ENV/
+virtualenv/
+
+# Model Cache (prevent large ML files in git)
+.model_cache/
+*.pkl
+*.joblib
+*.h5
+*.pth
+
+# Kaggle Data (optional - can keep or remove)
+kaggle_data/
+*.csv
+
+# Python Cache
+.pytest_cache/
+.coverage
+.coverage.*
+htmlcov/
+.tox/
+.mypy_cache/
+.dmypy.json
+dmypy.json
+
+# Logs
+*.log
+debug_log.txt
+error_debug.txt
+
+# IDE
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
+.DS_Store
+
+# Flask
+instance/
+.webassets-cache
+
+# Environment variables
+.env
+.env.local
+
+# Jupyter Notebooks
+.ipynb_checkpoints/
+*.ipynb_checkpoints
+
+# OS
+Thumbs.db
+desktop.ini

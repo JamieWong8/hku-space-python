@@ -34,6 +34,8 @@ if (Test-Path $flaskDir) {
 # Fast-start defaults (can be overridden by environment)
 # Enable Kaggle by default; script will gracefully fall back to local cached CSV if needed
 if (-not $env:SKIP_KAGGLE) { $env:SKIP_KAGGLE = 'false' }
+# Limit Kaggle data loading to 400 rows for faster startup
+if (-not $env:KAGGLE_MAX_ROWS) { $env:KAGGLE_MAX_ROWS = '400' }
 # Limit precomputation to first 200 rows for faster startup unless overridden
 if (-not $env:PRECOMPUTE_MAX_ROWS) { $env:PRECOMPUTE_MAX_ROWS = '200' }
 # Make startup instant by default: skip heavy training on import, use fast bootstrap, lazy background training
@@ -135,6 +137,7 @@ Write-Host "   Web Server: http://localhost:5000" -ForegroundColor White
 Write-Host "   API Endpoints: /api/evaluate, /api/examples" -ForegroundColor White
 Write-Host "   Debug Mode: Enabled" -ForegroundColor White
 Write-Host "   Kaggle Enabled: $($env:SKIP_KAGGLE -eq 'false')" -ForegroundColor White
+Write-Host "   Kaggle Data Max Rows: $($env:KAGGLE_MAX_ROWS)" -ForegroundColor White
 Write-Host "   Auto-Precompute: Enabled | Max Rows: $($env:PRECOMPUTE_MAX_ROWS)" -ForegroundColor White
 Write-Host "   Caching: $($env:CACHE_MODELS)" -ForegroundColor White
 Write-Host ""

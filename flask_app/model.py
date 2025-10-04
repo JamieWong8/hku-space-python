@@ -81,13 +81,13 @@ FUNDING_ROUNDS = ['Seed', 'Series A', 'Series B', 'Series C', 'Series D+']
 
 # Success rate configuration
 SUCCESS_RATE_CONFIG = {
-    'target_success_rate': 0.35,  # Target 35% overall success rate (adjustable)
+    'target_success_rate': 0.25,  # Target 25% overall success rate (more realistic for VC)
     'acquired_ipo_rate': 1.0,     # Companies marked as acquired/IPO are always successful
-    'operating_base_rate': 0.4,   # Base rate for operating companies
-    'closed_success_rate': 0.1,   # Some closed companies might have been successful exits
-    'unknown_status_rate': 0.5,   # Companies with unknown status
-    'funding_boost_threshold': 1000000,  # $1M+ funding boosts success probability
-    'high_funding_boost_threshold': 5000000,  # $5M+ funding gets extra boost
+    'operating_base_rate': 0.28,  # Lower base rate for operating companies (more selective)
+    'closed_success_rate': 0.05,  # Fewer closed companies were successful exits
+    'unknown_status_rate': 0.35,  # Lower success rate for unknown status
+    'funding_boost_threshold': 2000000,  # $2M+ funding boosts success probability (higher threshold)
+    'high_funding_boost_threshold': 10000000,  # $10M+ funding gets extra boost (higher threshold)
     'enable_industry_boost': True,  # Whether to boost certain industries
     'enable_location_boost': True,  # Whether to boost certain locations
 }
@@ -848,8 +848,11 @@ def download_kaggle_startup_data():
             script_dir = os.path.dirname(os.path.abspath(__file__))
             local_csv = os.path.join(script_dir, 'kaggle_data', 'investments_VC.csv')
             
+            # Get max rows from environment variable (default 400)
+            max_rows = int(os.environ.get('KAGGLE_MAX_ROWS', '400'))
+            
             if os.path.exists(local_csv):
-                print(f"Loading: Loading failsafe data from investments_VC.csv...")
+                print(f"Loading: Loading failsafe data from investments_VC.csv (max {max_rows} rows)...")
                 
                 # Try different encodings
                 encodings = ['utf-8', 'latin-1', 'cp1252', 'iso-8859-1']
@@ -857,7 +860,7 @@ def download_kaggle_startup_data():
                 
                 for encoding in encodings:
                     try:
-                        df = pd.read_csv(local_csv, low_memory=False, encoding=encoding, nrows=2000)
+                        df = pd.read_csv(local_csv, low_memory=False, encoding=encoding, nrows=max_rows)
                         print(f"Success: Successfully loaded with {encoding} encoding")
                         break
                     except UnicodeDecodeError:
@@ -872,7 +875,7 @@ def download_kaggle_startup_data():
                 
                 # Convert to startup format using real company names
                 startup_data = []
-                for idx, row in df.head(2000).iterrows():  # Limit for performance
+                for idx, row in df.head(max_rows).iterrows():  # Use max_rows limit for performance
                     try:
                         # Extract real company name from the CSV
                         real_company_name = None
@@ -1077,11 +1080,14 @@ def download_kaggle_startup_data():
                         # Check for investments_VC.csv (main dataset file)
                         investments_vc_path = os.path.join(data_dir, 'investments_VC.csv')
                         
+                        # Get max rows from environment variable (default 400)
+                        max_rows = int(os.environ.get('KAGGLE_MAX_ROWS', '400'))
+                        
                         if os.path.exists(investments_vc_path):
                             try:
-                                print("   Loading data from investments_VC.csv using kagglehub...")
+                                print(f"   Loading data from investments_VC.csv using kagglehub (max {max_rows} rows)...")
                                 # Load the main dataset file directly
-                                df = pd.read_csv(investments_vc_path, low_memory=False, nrows=2000)  # Limit for speed
+                                df = pd.read_csv(investments_vc_path, low_memory=False, nrows=max_rows)  # Limit for speed
                                 
                                 if len(df) > 100:
                                     # Process this data using our existing failsafe logic
@@ -1098,16 +1104,19 @@ def download_kaggle_startup_data():
                         investments_path = os.path.join(data_dir, 'investments.csv')
                         funding_rounds_path = os.path.join(data_dir, 'funding_rounds.csv')
                         
+                        # Get max rows from environment variable (default 400)
+                        max_rows = int(os.environ.get('KAGGLE_MAX_ROWS', '400'))
+                        
                         if os.path.exists(objects_path) and os.path.exists(investments_path):
                             try:
                                 # Load company information with real names
-                                print("   Loading company data from objects.csv...")
-                                objects_df = pd.read_csv(objects_path, low_memory=False, nrows=5000)  # Limit rows for speed
+                                print(f"   Loading company data from objects.csv (max {max_rows} rows)...")
+                                objects_df = pd.read_csv(objects_path, low_memory=False, nrows=max_rows)  # Limit rows for speed
                                 companies_df = objects_df[objects_df['entity_type'] == 'Company'].copy()
                                 
                                 # Load investment data
-                                print("   Loading investment data from investments.csv...")
-                                investments_df = pd.read_csv(investments_path, nrows=5000)  # Limit for speed
+                                print(f"   Loading investment data from investments.csv (max {max_rows} rows)...")
+                                investments_df = pd.read_csv(investments_path, nrows=max_rows)  # Limit for speed
                                 
                                 # Load funding rounds data if available
                                 funding_df = None
@@ -1339,6 +1348,9 @@ def load_data():
     
     # Check environment variable to determine if we should skip Kaggle
     SKIP_KAGGLE = os.environ.get('SKIP_KAGGLE', 'False').lower() in ['true', '1', 'yes']
+    
+    # Get max rows to load from Kaggle data (default 400 for faster loading)
+    KAGGLE_MAX_ROWS = int(os.environ.get('KAGGLE_MAX_ROWS', '400'))
     
     if not SKIP_KAGGLE:
         # Try to load Kaggle data first
@@ -2120,38 +2132,39 @@ def calculate_attractiveness_score(success_probability, market_size, competition
     Calculate deal attractiveness score (0-100) with stricter, properly bounded normalization.
 
     Changes vs previous version:
-      - Success probability dominates (65%) and is mapped more strictly: 0.2 -> 0, 0.9 -> 1
+      - Success probability dominates (70%) and is mapped more strictly: 0.25 -> 0, 0.85 -> 1
       - Market opportunity uses a logistic transform on (market - 2*competition)
       - Team and investors use log-normalization to prevent early saturation
+      - Stricter gating to push more companies into Avoid tier
 
     Weights (sum to 100):
-      - Success probability: 65%
+      - Success probability: 70%
       - Market opportunity: 15%
-      - Team size: 10%
-      - Investor count: 10%
+      - Team size: 8%
+      - Investor count: 7%
     """
-    # Stricter linear mapping for success probability: below 20% -> 0, above 90% -> 1
+    # Much stricter linear mapping for success probability: below 25% -> 0, above 85% -> 1
     try:
         sp = float(success_probability)
     except Exception:
         sp = 0.0
-    sp_norm = max(0.0, min(1.0, (sp - 0.20) / 0.70))
+    sp_norm = max(0.0, min(1.0, (sp - 0.25) / 0.60))
 
     market_norm = _normalize_market(market_size, competition_level)
-    team_norm = _log_norm(team_size, 150.0)           # approaches 1 near ~150 people
-    investors_norm = _log_norm(num_investors, 12.0)   # approaches 1 near ~12 investors
+    team_norm = _log_norm(team_size, 200.0)           # approaches 1 near ~200 people (harder)
+    investors_norm = _log_norm(num_investors, 15.0)   # approaches 1 near ~15 investors (harder)
 
     score = (
-        sp_norm * 65.0 +
+        sp_norm * 70.0 +
         market_norm * 15.0 +
-        team_norm * 10.0 +
-        investors_norm * 10.0
+        team_norm * 8.0 +
+        investors_norm * 7.0
     )
-    # Gating caps by success probability to avoid overly lenient scores
-    if sp < 0.35:
-        score = min(score, 49.0)  # hard Avoid (updated threshold)
-    elif sp < 0.45:
-        score = min(score, 64.0)  # at most Monitor (updated threshold)
+    # Stricter gating caps by success probability to avoid overly lenient scores
+    if sp < 0.40:
+        score = min(score, 49.0)  # hard Avoid if sp < 40%
+    elif sp < 0.50:
+        score = min(score, 64.0)  # at most Monitor if sp < 50%
     return float(score)
 
 def get_recommendation(score):
@@ -2663,86 +2676,214 @@ def calculate_component_scores_detailed(data, success_probability):
 
 def create_analysis_dashboard(data):
     """
-    Create comprehensive analysis dashboard as image.
+    Create comprehensive analysis dashboard as image with enhanced, distinctive visualizations.
     """
-    # Set up the plot
-    fig, axes = plt.subplots(2, 3, figsize=(18, 12))
-    fig.suptitle('Growth: Startup Deal Analysis Dashboard', fontsize=20, fontweight='bold', y=0.95)
+    # Set up the plot with improved styling
+    fig = plt.figure(figsize=(20, 13))
+    fig.patch.set_facecolor('#f8f9fa')  # Light background
+    gs = fig.add_gridspec(2, 3, hspace=0.35, wspace=0.3, top=0.92, bottom=0.08, left=0.08, right=0.95)
+    
+    # Modern title with gradient effect simulation
+    fig.suptitle('📊 Startup Deal Analysis Dashboard', fontsize=24, fontweight='bold', 
+                 color='#2c3e50', y=0.97, family='sans-serif')
     
     # Evaluate the startup
     evaluation = analyze_company_comprehensive(data)
     
-    # 1. Deal Attractiveness Gauge
-    ax1 = axes[0, 0]
+    # 1. Deal Attractiveness Gauge - Enhanced with gradient and shadow
+    ax1 = fig.add_subplot(gs[0, 0])
+    ax1.set_facecolor('#ffffff')
     score = evaluation['attractiveness_score']
-    colors = ['#ff4444', '#ff8800', '#ffaa00', '#88dd00', '#00dd00']
-    color_idx = min(int(score / 20), 4)
     
-    # Create gauge chart
+    # Enhanced color palette with gradients
+    if score >= 75:
+        gauge_color = '#2ecc71'  # Vibrant green
+        score_color = '#27ae60'
+    elif score >= 65:
+        gauge_color = '#3498db'  # Bright blue
+        score_color = '#2980b9'
+    elif score >= 50:
+        gauge_color = '#f39c12'  # Warm orange
+        score_color = '#e67e22'
+    else:
+        gauge_color = '#e74c3c'  # Strong red
+        score_color = '#c0392b'
+    
+    # Create enhanced gauge chart
     theta = np.linspace(0, np.pi, 100)
     r = np.ones_like(theta)
-    ax1.plot(theta, r, 'k-', linewidth=2)
     
-    # Fill gauge based on score
+    # Background arc (unfilled portion)
+    ax1.plot(theta, r, color='#ecf0f1', linewidth=14, solid_capstyle='round', zorder=1)
+    
+    # Filled portion with shadow effect
     fill_theta = np.linspace(0, np.pi * score / 100, 50)
     fill_r = np.ones_like(fill_theta)
-    ax1.fill_between(fill_theta, 0, fill_r, color=colors[color_idx], alpha=0.7)
     
-    ax1.set_ylim(0, 1.2)
-    ax1.set_xlim(-0.2, np.pi + 0.2)
-    ax1.text(np.pi/2, 0.5, f'{score:.1f}', ha='center', va='center', fontsize=24, fontweight='bold')
-    ax1.text(np.pi/2, 0.2, 'Attractiveness Score', ha='center', va='center', fontsize=12)
-    ax1.set_title('Deal Attractiveness Gauge', fontsize=14, fontweight='bold')
+    # Shadow
+    ax1.fill_between(fill_theta, 0, fill_r * 1.05, color='black', alpha=0.1, zorder=2)
+    # Main gauge fill
+    ax1.fill_between(fill_theta, 0, fill_r, color=gauge_color, alpha=0.85, zorder=3)
+    # Border
+    ax1.plot(fill_theta, fill_r, color=score_color, linewidth=3, solid_capstyle='round', zorder=4)
+    
+    ax1.set_ylim(0, 1.3)
+    ax1.set_xlim(-0.3, np.pi + 0.3)
+    
+    # Score text with shadow
+    ax1.text(np.pi/2 + 0.02, 0.52, f'{score:.1f}', ha='center', va='center', 
+             fontsize=36, fontweight='bold', color='black', alpha=0.15, zorder=5)
+    ax1.text(np.pi/2, 0.5, f'{score:.1f}', ha='center', va='center', 
+             fontsize=36, fontweight='bold', color=score_color, zorder=6)
+    
+    # Label with background box
+    ax1.text(np.pi/2, 0.15, 'Attractiveness Score', ha='center', va='center', 
+             fontsize=11, fontweight='600', color='#34495e',
+             bbox=dict(boxstyle='round,pad=0.5', facecolor='white', edgecolor='#bdc3c7', linewidth=1.5))
+    
+    ax1.set_title('📈 Deal Attractiveness', fontsize=15, fontweight='bold', 
+                  color='#2c3e50', pad=15)
     ax1.axis('off')
     
-    # 2. Success Probability Comparison
-    ax2 = axes[0, 1]
-    categories = ['This Deal', 'Industry Avg', 'Top Quartile']
+    # 2. Success Probability Comparison - Enhanced with gradients and borders
+    ax2 = fig.add_subplot(gs[0, 1])
+    ax2.set_facecolor('#ffffff')
+    
+    categories = ['This Deal', 'Industry\nAverage', 'Top\nQuartile']
     probabilities = [evaluation['success_probability'], 0.45, 0.75]
-    colors_bar = ['#ff6b6b' if probabilities[0] < 0.5 else '#4ecdc4', '#95a5a6', '#2ecc71']
     
-    bars = ax2.bar(categories, probabilities, color=colors_bar, alpha=0.8)
-    ax2.set_ylabel('Success Probability', fontsize=12)
-    ax2.set_title('Success Probability Benchmarking', fontsize=14, fontweight='bold')
-    ax2.set_ylim(0, 1)
+    # Distinct color scheme with borders
+    colors_bar = [
+        '#3498db' if probabilities[0] >= 0.6 else '#f39c12' if probabilities[0] >= 0.4 else '#e74c3c',
+        '#95a5a6',  # Gray for average
+        '#2ecc71'   # Green for top quartile
+    ]
+    edge_colors = [
+        '#2980b9' if probabilities[0] >= 0.6 else '#e67e22' if probabilities[0] >= 0.4 else '#c0392b',
+        '#7f8c8d',
+        '#27ae60'
+    ]
     
-    # Add value labels on bars
-    for bar, prob in zip(bars, probabilities):
-        ax2.text(bar.get_x() + bar.get_width()/2, bar.get_height() + 0.02, 
-                f'{prob:.1%}', ha='center', va='bottom', fontweight='bold')
+    # Create bars with borders and shadow
+    bars = ax2.bar(categories, probabilities, color=colors_bar, alpha=0.85, 
+                   edgecolor=edge_colors, linewidth=2.5, width=0.6)
     
-    # 3. Feature Contribution Analysis (illustrative only; revenue removed)
-    ax3 = axes[0, 2]
+    # Add shadow effect
+    for i, bar in enumerate(bars):
+        shadow = ax2.bar(i, probabilities[i], color='black', alpha=0.1, 
+                        width=bar.get_width(), bottom=0.01, zorder=1)
+    
+    ax2.set_ylabel('Success Probability', fontsize=12, fontweight='600', color='#34495e')
+    ax2.set_title('🎯 Success Probability Benchmark', fontsize=15, fontweight='bold', 
+                  color='#2c3e50', pad=15)
+    ax2.set_ylim(0, 1.05)
+    ax2.spines['top'].set_visible(False)
+    ax2.spines['right'].set_visible(False)
+    ax2.spines['left'].set_color('#bdc3c7')
+    ax2.spines['bottom'].set_color('#bdc3c7')
+    ax2.tick_params(colors='#34495e')
+    ax2.grid(axis='y', alpha=0.3, linestyle='--', linewidth=0.8, color='#bdc3c7')
+    
+    # Enhanced value labels with background boxes
+    for i, (bar, prob) in enumerate(zip(bars, probabilities)):
+        label_color = edge_colors[i]
+        ax2.text(bar.get_x() + bar.get_width()/2, bar.get_height() + 0.03, 
+                f'{prob:.0%}', ha='center', va='bottom', fontsize=13,
+                fontweight='bold', color=label_color,
+                bbox=dict(boxstyle='round,pad=0.4', facecolor='white', 
+                         edgecolor=label_color, linewidth=1.5, alpha=0.95))
+    
+    # 3. Feature Contribution Analysis - Enhanced donut chart with distinct colors
+    ax3 = fig.add_subplot(gs[0, 2])
+    ax3.set_facecolor('#ffffff')
     
     # Simulated feature importance for visualization
     features = ['Market Size', 'Team Strength', 'Competition', 'Funding Eff.', 'Investors']
     importance = [0.24, 0.22, 0.18, 0.18, 0.18]
     
-    wedges, texts, autotexts = ax3.pie(importance, labels=features, autopct='%1.1f%%', 
-                                      colors=plt.cm.Set3.colors, startangle=90)
-    ax3.set_title('Key Success Factors', fontsize=14, fontweight='bold')
+    # Distinct, vibrant color palette
+    pie_colors = ['#3498db', '#e74c3c', '#f39c12', '#9b59b6', '#1abc9c']
+    explode = [0.05, 0.02, 0, 0, 0]  # Slightly explode top slices
     
-    # 4. Industry Landscape
-    ax4 = axes[1, 0]
+    # Create donut chart with enhanced styling
+    wedges, texts, autotexts = ax3.pie(importance, labels=features, autopct='%1.1f%%',
+                                       colors=pie_colors, startangle=90, explode=explode,
+                                       wedgeprops=dict(width=0.5, edgecolor='white', linewidth=3),
+                                       textprops=dict(fontsize=10, fontweight='600', color='#2c3e50'))
+    
+    # Style percentage labels
+    for autotext in autotexts:
+        autotext.set_color('white')
+        autotext.set_fontsize(11)
+        autotext.set_fontweight('bold')
+    
+    # Add center circle for donut effect with label
+    centre_circle = plt.Circle((0, 0), 0.50, fc='#f8f9fa', edgecolor='#bdc3c7', linewidth=2)
+    ax3.add_artist(centre_circle)
+    ax3.text(0, 0, 'Key\nFactors', ha='center', va='center', fontsize=12, 
+             fontweight='bold', color='#34495e')
+    
+    ax3.set_title('🔑 Success Factor Distribution', fontsize=15, fontweight='bold', 
+                  color='#2c3e50', pad=15)
+    
+    # 4. Industry Landscape - Enhanced horizontal bars with gradient
+    ax4 = fig.add_subplot(gs[1, 0])
+    ax4.set_facecolor('#ffffff')
     
     # Simulated industry data
     industries = ['Fintech', 'Healthcare', 'SaaS', 'E-commerce', 'AI/ML']
     success_rates = [0.68, 0.62, 0.71, 0.45, 0.59]
     current_industry = data.get('industry', 'SaaS')
     
-    colors_industry = ['#e74c3c' if ind == current_industry else '#bdc3c7' for ind in industries]
-    bars = ax4.barh(industries, success_rates, color=colors_industry, alpha=0.8)
-    ax4.set_xlabel('Average Success Rate', fontsize=12)
-    ax4.set_title('Industry Success Rates', fontsize=14, fontweight='bold')
-    ax4.set_xlim(0, 0.8)
+    # Distinct colors with highlight for current industry
+    colors_industry = []
+    edge_colors_industry = []
+    for ind, rate in zip(industries, success_rates):
+        if ind == current_industry:
+            colors_industry.append('#e74c3c')  # Red highlight for current
+            edge_colors_industry.append('#c0392b')
+        else:
+            # Gradient based on success rate
+            if rate >= 0.65:
+                colors_industry.append('#2ecc71')
+                edge_colors_industry.append('#27ae60')
+            elif rate >= 0.55:
+                colors_industry.append('#3498db')
+                edge_colors_industry.append('#2980b9')
+            else:
+                colors_industry.append('#95a5a6')
+                edge_colors_industry.append('#7f8c8d')
     
-    # Highlight current industry
-    for bar, rate in zip(bars, success_rates):
-        ax4.text(rate + 0.01, bar.get_y() + bar.get_height()/2, 
-                f'{rate:.1%}', va='center', fontweight='bold')
+    # Create horizontal bars with enhanced styling
+    bars = ax4.barh(industries, success_rates, color=colors_industry, alpha=0.85,
+                   edgecolor=edge_colors_industry, linewidth=2, height=0.6)
     
-    # 5. Risk-Return Analysis
-    ax5 = axes[1, 1]
+    # Add subtle shadow
+    for i, bar in enumerate(bars):
+        ax4.barh(i, success_rates[i], color='black', alpha=0.08, 
+                height=bar.get_height(), left=0.005, zorder=1)
+    
+    ax4.set_xlabel('Average Success Rate', fontsize=12, fontweight='600', color='#34495e')
+    ax4.set_title('🏢 Industry Success Benchmark', fontsize=15, fontweight='bold', 
+                  color='#2c3e50', pad=15)
+    ax4.set_xlim(0, 0.85)
+    ax4.spines['top'].set_visible(False)
+    ax4.spines['right'].set_visible(False)
+    ax4.spines['left'].set_color('#bdc3c7')
+    ax4.spines['bottom'].set_color('#bdc3c7')
+    ax4.tick_params(colors='#34495e')
+    ax4.grid(axis='x', alpha=0.3, linestyle='--', linewidth=0.8, color='#bdc3c7')
+    
+    # Enhanced value labels with icons
+    for i, (bar, rate, ind) in enumerate(zip(bars, success_rates, industries)):
+        icon = '⭐' if ind == current_industry else ''
+        ax4.text(rate + 0.02, bar.get_y() + bar.get_height()/2, 
+                f'{icon} {rate:.0%}', va='center', fontsize=11,
+                fontweight='bold', color=edge_colors_industry[i])
+    
+    # 5. Risk-Return Analysis - Enhanced scatter with quadrant styling
+    ax5 = fig.add_subplot(gs[1, 1])
+    ax5.set_facecolor('#ffffff')
     
     # Plot this deal vs. benchmarks
     risk_score = 100 - evaluation['attractiveness_score']
@@ -2753,30 +2894,68 @@ def create_analysis_dashboard(data):
     peer_risk = np.random.uniform(20, 80, 20)
     peer_return = np.random.uniform(30, 90, 20)
     
-    ax5.scatter(peer_risk, peer_return, alpha=0.6, s=50, color='lightgray', label='Industry Peers')
-    ax5.scatter(risk_score, return_score, s=200, color='red', marker='*', 
-               label='This Deal', edgecolor='black', linewidth=2)
+    # Add colored quadrant backgrounds
+    ax5.axhspan(50, 100, xmin=0, xmax=0.5, facecolor='#d5f4e6', alpha=0.3, zorder=1)  # Low Risk, High Return
+    ax5.axhspan(50, 100, xmin=0.5, xmax=1, facecolor='#fff3cd', alpha=0.3, zorder=1)  # High Risk, High Return
+    ax5.axhspan(0, 50, xmin=0, xmax=0.5, facecolor='#e8e8e8', alpha=0.3, zorder=1)   # Low Risk, Low Return
+    ax5.axhspan(0, 50, xmin=0.5, xmax=1, facecolor='#f8d7da', alpha=0.3, zorder=1)   # High Risk, Low Return
     
-    ax5.set_xlabel('Risk Score', fontsize=12)
-    ax5.set_ylabel('Expected Return Score', fontsize=12)
-    ax5.set_title('Risk-Return Positioning', fontsize=14, fontweight='bold')
-    ax5.legend()
-    ax5.grid(True, alpha=0.3)
+    # Plot peer companies with enhanced styling
+    ax5.scatter(peer_risk, peer_return, alpha=0.4, s=80, color='#95a5a6', 
+               label='Industry Peers', edgecolor='#7f8c8d', linewidth=1, zorder=2)
     
-    # Add quadrant labels
-    ax5.text(75, 85, 'High Risk\nHigh Return', ha='center', va='center', 
-            bbox=dict(boxstyle='round', facecolor='yellow', alpha=0.3))
-    ax5.text(25, 85, 'Low Risk\nHigh Return', ha='center', va='center',
-            bbox=dict(boxstyle='round', facecolor='green', alpha=0.3))
-    ax5.text(25, 35, 'Low Risk\nLow Return', ha='center', va='center',
-            bbox=dict(boxstyle='round', facecolor='gray', alpha=0.3))
-    ax5.text(75, 35, 'High Risk\nLow Return', ha='center', va='center',
-            bbox=dict(boxstyle='round', facecolor='red', alpha=0.3))
+    # Plot this deal with prominent styling
+    ax5.scatter(risk_score, return_score, s=400, color='#e74c3c', marker='*', 
+               label='This Deal', edgecolor='#c0392b', linewidth=3, zorder=5)
+    # Add glow effect
+    ax5.scatter(risk_score, return_score, s=600, color='#e74c3c', marker='*', 
+               alpha=0.2, edgecolor='none', zorder=4)
     
-    # 6. Market Factors Analysis
-    ax6 = axes[1, 2]
+    ax5.set_xlabel('Risk Score', fontsize=12, fontweight='600', color='#34495e')
+    ax5.set_ylabel('Expected Return Score', fontsize=12, fontweight='600', color='#34495e')
+    ax5.set_title('⚖️ Risk-Return Matrix', fontsize=15, fontweight='bold', 
+                  color='#2c3e50', pad=15)
+    ax5.set_xlim(0, 100)
+    ax5.set_ylim(0, 100)
     
-    factors = ['Market Size', 'Competition', 'Team Size', 'Valuation', 'Funding']
+    # Style the axes
+    ax5.spines['top'].set_visible(False)
+    ax5.spines['right'].set_visible(False)
+    ax5.spines['left'].set_color('#bdc3c7')
+    ax5.spines['bottom'].set_color('#bdc3c7')
+    ax5.tick_params(colors='#34495e')
+    
+    # Add center crosshairs
+    ax5.axhline(50, color='#34495e', linestyle='--', linewidth=1.5, alpha=0.5, zorder=3)
+    ax5.axvline(50, color='#34495e', linestyle='--', linewidth=1.5, alpha=0.5, zorder=3)
+    
+    # Enhanced quadrant labels with distinct styling
+    ax5.text(75, 88, '⚠️ High Risk\nHigh Return', ha='center', va='center', fontsize=10,
+            fontweight='bold', color='#d68910',
+            bbox=dict(boxstyle='round,pad=0.6', facecolor='#fff3cd', 
+                     edgecolor='#f39c12', linewidth=2, alpha=0.9))
+    ax5.text(25, 88, '✅ Low Risk\nHigh Return', ha='center', va='center', fontsize=10,
+            fontweight='bold', color='#196f3d',
+            bbox=dict(boxstyle='round,pad=0.6', facecolor='#d5f4e6', 
+                     edgecolor='#2ecc71', linewidth=2, alpha=0.9))
+    ax5.text(25, 12, '💤 Low Risk\nLow Return', ha='center', va='center', fontsize=10,
+            fontweight='bold', color='#5d6d7e',
+            bbox=dict(boxstyle='round,pad=0.6', facecolor='#e8e8e8', 
+                     edgecolor='#95a5a6', linewidth=2, alpha=0.9))
+    ax5.text(75, 12, '🚨 High Risk\nLow Return', ha='center', va='center', fontsize=10,
+            fontweight='bold', color='#943126',
+            bbox=dict(boxstyle='round,pad=0.6', facecolor='#f8d7da', 
+                     edgecolor='#e74c3c', linewidth=2, alpha=0.9))
+    
+    # Enhanced legend
+    ax5.legend(loc='upper right', frameon=True, fancybox=True, shadow=True,
+              fontsize=10, edgecolor='#bdc3c7', facecolor='white')
+    
+    # 6. Market Factors Analysis - Enhanced radar chart with gradient fill
+    ax6 = fig.add_subplot(gs[1, 2], projection='polar')
+    ax6.set_facecolor('#ffffff')
+    
+    factors = ['Market\nSize', 'Competition', 'Team\nSize', 'Valuation', 'Funding']
     scores = [
         min(100, data.get('market_size_billion_usd', 10) * 5),
         100 - data.get('competition_level', 5) * 10,
@@ -2788,25 +2967,48 @@ def create_analysis_dashboard(data):
     # Normalize scores to 0-100
     scores = [min(100, max(0, score)) for score in scores]
     
-    # Create radar chart
+    # Create radar chart with enhanced styling
     angles = np.linspace(0, 2 * np.pi, len(factors), endpoint=False).tolist()
     scores_plot = scores + [scores[0]]  # Complete the circle
     angles_plot = angles + [angles[0]]
     
-    ax6.plot(angles_plot, scores_plot, 'o-', linewidth=2, color='blue', alpha=0.8)
-    ax6.fill(angles_plot, scores_plot, alpha=0.25, color='blue')
+    # Add reference circles with distinct colors
+    ax6.plot(angles_plot, [25]*len(angles_plot), 'o-', linewidth=1, color='#e74c3c', 
+            alpha=0.3, linestyle=':', zorder=1)
+    ax6.plot(angles_plot, [50]*len(angles_plot), 'o-', linewidth=1, color='#f39c12', 
+            alpha=0.3, linestyle=':', zorder=1)
+    ax6.plot(angles_plot, [75]*len(angles_plot), 'o-', linewidth=1, color='#2ecc71', 
+            alpha=0.3, linestyle=':', zorder=1)
+    
+    # Main data plot with shadow
+    ax6.plot(angles_plot, scores_plot, 'o-', linewidth=3, color='#34495e', 
+            alpha=0.15, markersize=8, zorder=2)  # Shadow
+    ax6.plot(angles_plot, scores_plot, 'o-', linewidth=2.5, color='#3498db', 
+            alpha=0.9, markersize=8, markerfacecolor='#2980b9', 
+            markeredgecolor='white', markeredgewidth=2, zorder=3)
+    
+    # Gradient fill effect using multiple alpha layers
+    ax6.fill(angles_plot, scores_plot, alpha=0.15, color='#3498db', zorder=2)
+    ax6.fill(angles_plot, scores_plot, alpha=0.10, color='#5dade2', zorder=1)
+    
+    # Styling
     ax6.set_xticks(angles)
-    ax6.set_xticklabels(factors)
+    ax6.set_xticklabels(factors, fontsize=10, fontweight='600', color='#2c3e50')
     ax6.set_ylim(0, 100)
-    ax6.set_title('Business Fundamentals', fontsize=14, fontweight='bold')
-    ax6.grid(True)
+    ax6.set_yticks([25, 50, 75, 100])
+    ax6.set_yticklabels(['25', '50', '75', '100'], fontsize=8, color='#7f8c8d')
+    ax6.grid(True, linestyle='--', linewidth=0.8, alpha=0.4, color='#bdc3c7')
+    ax6.set_theta_offset(np.pi / 2)
+    ax6.set_theta_direction(-1)
     
-    plt.tight_layout()
+    # Add title with icon
+    ax6.set_title('💼 Business Fundamentals', fontsize=15, fontweight='bold', 
+                  color='#2c3e50', pad=25, y=1.1)
     
-    # Save to buffer
+    # Save to buffer with high quality
     img_buffer = io.BytesIO()
-    plt.savefig(img_buffer, format='png', dpi=100, bbox_inches='tight', 
-                facecolor='white', edgecolor='none')
+    plt.savefig(img_buffer, format='png', dpi=120, bbox_inches='tight', 
+                facecolor='#f8f9fa', edgecolor='none', pad_inches=0.3)
     plt.close()
     
     return img_buffer
@@ -2907,55 +3109,24 @@ def precompute_investment_tiers(max_rows: int | None = None, *, force_refresh: b
         except Exception as _e:
             # Continue on individual row failures
             continue
-    # Optional: Distribution-aware normalization to achieve realistic VC-style tier distribution
+    # DISABLED: Distribution-aware normalization that was overriding strict scoring
+    # The normalization was forcing a fixed distribution (30% Invest, 45% Monitor, 25% Avoid)
+    # regardless of actual company quality. With stricter scoring, we want natural distribution.
+    # The strict scoring algorithm (lower base rates, tighter thresholds, stronger gating)
+    # will naturally produce more companies in the Avoid tier without artificial remapping.
     try:
         if processed_indices:
             s = sample_data.loc[processed_indices, 'precomputed_attractiveness_score'].astype(float)
-            # Compute current tier distribution (using updated thresholds)
+            # Report the NATURAL distribution from strict scoring
             def _tier(x: float) -> str:
                 return 'invest' if x >= 65 else ('monitor' if x >= 50 else 'avoid')
-            current_tiers = s.apply(_tier).value_counts()
-            invest_share = current_tiers.get('invest', 0) / max(1, len(s))
-            avoid_count = current_tiers.get('avoid', 0)
-            
-            # Always apply normalization to achieve realistic VC distribution
-            # Target: ~30% Invest, ~45% Monitor, ~25% Avoid
-            v = s.values
-            v_valid = v[np.isfinite(v)]
-            if v_valid.size >= 10 and (np.percentile(v_valid, 90) - np.percentile(v_valid, 10)) > 1e-6:
-                # Use percentile-based mapping for more realistic spread
-                # Map P30 -> 50 (avoid/monitor boundary), P75 -> 65 (monitor/invest boundary)
-                p30 = np.percentile(v_valid, 30)
-                p75 = np.percentile(v_valid, 75)
-                
-                # Linear mapping: [p30, p75] -> [50, 65]
-                if abs(p75 - p30) > 1e-6:
-                    a = (65.0 - 50.0) / (p75 - p30)
-                    b = 50.0 - a * p30
-                    v2 = np.clip(a * v + b, 0.0, 100.0)
-                    
-                    sample_data.loc[processed_indices, 'precomputed_attractiveness_score'] = v2
-                    # Recompute tiers and recommendations (using updated thresholds: Invest >= 65, Monitor >= 50)
-                    new_tiers = ['Invest' if x >= 65.0 else ('Monitor' if x >= 50.0 else 'Avoid') for x in v2]
-                    sample_data.loc[processed_indices, 'precomputed_investment_tier'] = new_tiers
-                    sample_data.loc[processed_indices, 'precomputed_investment_tier_norm'] = [
-                        _normalize_investment_tier_label(t) for t in new_tiers
-                    ]
-                    sample_data.loc[processed_indices, 'precomputed_recommendation'] = [
-                        get_recommendation(x) for x in v2
-                    ]
-                    sample_data.loc[processed_indices, 'precomputed_risk_level'] = [
-                        'High' if x < 50 else ('Medium' if x < 65 else 'Low') for x in v2
-                    ]
-                    
-                    # Report the actual distribution achieved
-                    final_tiers = pd.Series(new_tiers).value_counts()
-                    invest_pct = (final_tiers.get('Invest', 0) / len(new_tiers)) * 100
-                    monitor_pct = (final_tiers.get('Monitor', 0) / len(new_tiers)) * 100
-                    avoid_pct = (final_tiers.get('Avoid', 0) / len(new_tiers)) * 100
-                    print(f"Info: Applied distribution normalization → Invest: {invest_pct:.0f}%, Monitor: {monitor_pct:.0f}%, Avoid: {avoid_pct:.0f}%")
+            actual_tiers = s.apply(_tier).value_counts()
+            invest_pct = (actual_tiers.get('invest', 0) / len(s)) * 100
+            monitor_pct = (actual_tiers.get('monitor', 0) / len(s)) * 100
+            avoid_pct = (actual_tiers.get('avoid', 0) / len(s)) * 100
+            print(f"Info: Natural distribution from strict scoring → Invest: {invest_pct:.0f}%, Monitor: {monitor_pct:.0f}%, Avoid: {avoid_pct:.0f}%")
     except Exception as _norm_err:
-        print(f"Warning: Score normalization step skipped due to error: {_norm_err}")
+        print(f"Warning: Distribution reporting skipped due to error: {_norm_err}")
     print(f"Success: Precomputed tiers for {processed} companies (of {n_limit})")
 
 #############################

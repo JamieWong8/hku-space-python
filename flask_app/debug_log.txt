@@ -1,140 +1,80 @@
+DEBUG: Company analysis request for ID: vc_0051
+   Analyzing company: 1366 Technologies
+   Using precomputed values from dataset columns for consistency (score=66.81)
+   Calling analyze_company_comprehensive...
+   Applying precomputed values to ensure consistency with company list
+   Analysis completed successfully
+   Investment commentary present: True
+   Successfully analyzed company: 66.80720688671117% attractiveness
 DEBUG: Company analysis request for ID: vc_0002
    Analyzing company: 'Rock' Your Paper
-   Using precomputed values from dataset columns for consistency (score=34.27)
+   Using precomputed values from dataset columns for consistency (score=37.81)
    Calling analyze_company_comprehensive...
    Applying precomputed values to ensure consistency with company list
    Analysis completed successfully
    Investment commentary present: True
-   Successfully analyzed company: 34.27316849320155% attractiveness
-DEBUG: Company analysis request for ID: vc_0002
-   Analyzing company: 'Rock' Your Paper
-   Using precomputed values from dataset columns for consistency (score=34.27)
-   Calling analyze_company_comprehensive...
-   Applying precomputed values to ensure consistency with company list
-   Analysis completed successfully
-   Investment commentary present: True
-   Successfully analyzed company: 34.27316849320155% attractiveness
-DEBUG: Company analysis request for ID: vc_0002
-   Analyzing company: 'Rock' Your Paper
-   Using precomputed values from dataset columns for consistency (score=25.12)
-   Calling analyze_company_comprehensive...
-   Applying precomputed values to ensure consistency with company list
-   Analysis completed successfully
-   Investment commentary present: True
-   Successfully analyzed company: 25.120236410839937% attractiveness
-DEBUG: Company analysis request for ID: vc_0003
-   Analyzing company: (In)Touch Network
-   Using precomputed values from dataset columns for consistency (score=81.57)
-   Calling analyze_company_comprehensive...
-   Applying precomputed values to ensure consistency with company list
-   Analysis completed successfully
-   Investment commentary present: True
-   Successfully analyzed company: 81.56951380999914% attractiveness
-DEBUG: Company analysis request for ID: vc_0003
-   Analyzing company: (In)Touch Network
-   Using precomputed values from dataset columns for consistency (score=81.57)
-   Calling analyze_company_comprehensive...
-   Applying precomputed values to ensure consistency with company list
-   Analysis completed successfully
-   Investment commentary present: True
-   Successfully analyzed company: 81.56951380999914% attractiveness
+   Successfully analyzed company: 37.812695365162675% attractiveness
 DEBUG: Company analysis request for ID: vc_0001
    Analyzing company: &TV Communications
-   Using precomputed values from dataset columns for consistency (score=65.00)
+   Using precomputed values from dataset columns for consistency (score=60.77)
    Calling analyze_company_comprehensive...
    Applying precomputed values to ensure consistency with company list
    Analysis completed successfully
    Investment commentary present: True
-   Successfully analyzed company: 65.0% attractiveness
+   Successfully analyzed company: 60.76764749223468% attractiveness
 DEBUG: Company analysis request for ID: vc_0001
    Analyzing company: &TV Communications
-   Using precomputed values from dataset columns for consistency (score=65.00)
+   Using precomputed values from dataset columns for consistency (score=60.77)
    Calling analyze_company_comprehensive...
    Applying precomputed values to ensure consistency with company list
    Analysis completed successfully
    Investment commentary present: True
-   Successfully analyzed company: 65.0% attractiveness
-DEBUG: Company analysis request for ID: vc_0000
-   Analyzing company: #waywire
-   Using precomputed values from dataset columns for consistency (score=65.00)
-   Calling analyze_company_comprehensive...
-   Applying precomputed values to ensure consistency with company list
-   Analysis completed successfully
-   Investment commentary present: True
-   Successfully analyzed company: 65.0% attractiveness
-DEBUG: Company analysis request for ID: vc_0005
-   Analyzing company: .Club Domains
-   Using precomputed values from dataset columns for consistency (score=43.69)
-   Calling analyze_company_comprehensive...
-   Applying precomputed values to ensure consistency with company list
-   Analysis completed successfully
-   Investment commentary present: True
-   Successfully analyzed company: 43.68860485903119% attractiveness
-DEBUG: Company analysis request for ID: vc_0002
-   Analyzing company: 'Rock' Your Paper
-   Using precomputed values from dataset columns for consistency (score=25.12)
-   Calling analyze_company_comprehensive...
-   Applying precomputed values to ensure consistency with company list
-   Analysis completed successfully
-   Investment commentary present: True
-   Successfully analyzed company: 25.120236410839937% attractiveness
+   Successfully analyzed company: 60.76764749223468% attractiveness
 DEBUG: Company analysis request for ID: vc_0001
    Analyzing company: &TV Communications
+   Using precomputed values from dataset columns for consistency (score=60.77)
    Calling analyze_company_comprehensive...
+   Applying precomputed values to ensure consistency with company list
    Analysis completed successfully
    Investment commentary present: True
-   Successfully analyzed company: 64.9% attractiveness
+   Successfully analyzed company: 60.76764749223468% attractiveness
+DEBUG: Company analysis request for ID: vc_0236
+   Analyzing company: 3Leaf
+   Using precomputed values from dataset columns for consistency (score=67.25)
+   Calling analyze_company_comprehensive...
+   Applying precomputed values to ensure consistency with company list
+   Analysis completed successfully
+   Investment commentary present: True
+   Successfully analyzed company: 67.24684996920166% attractiveness
+DEBUG: Company analysis request for ID: vc_0278
+   Analyzing company: 480 Biomedical
+   Using precomputed values from dataset columns for consistency (score=68.97)
+   Calling analyze_company_comprehensive...
+   Applying precomputed values to ensure consistency with company list
+   Analysis completed successfully
+   Investment commentary present: True
+   Successfully analyzed company: 68.96622291085468% attractiveness
+DEBUG: Company analysis request for ID: vc_0231
+   Analyzing company: 3Guppies
+   Using precomputed values from dataset columns for consistency (score=69.01)
+   Calling analyze_company_comprehensive...
+   Applying precomputed values to ensure consistency with company list
+   Analysis completed successfully
+   Investment commentary present: True
+   Successfully analyzed company: 69.01208713262454% attractiveness
 DEBUG: Company analysis request for ID: vc_0001
    Analyzing company: &TV Communications
-   Calling analyze_company_comprehensive...
-   Analysis completed successfully
-   Investment commentary present: True
-   Successfully analyzed company: 64.9% attractiveness
-DEBUG: Company analysis request for ID: vc_0001
-   Analyzing company: &TV Communications
-   Using precomputed values from dataset columns for consistency (score=65.00)
+   Using precomputed values from dataset columns for consistency (score=60.77)
    Calling analyze_company_comprehensive...
    Applying precomputed values to ensure consistency with company list
    Analysis completed successfully
    Investment commentary present: True
-   Successfully analyzed company: 65.0% attractiveness
-DEBUG: Company analysis request for ID: vc_0001
-   Analyzing company: &TV Communications
-   Using precomputed values from dataset columns for consistency (score=65.00)
+   Successfully analyzed company: 60.76764749223468% attractiveness
+DEBUG: Company analysis request for ID: vc_0166
+   Analyzing company: 3-V Biosciences
+   Using precomputed values from dataset columns for consistency (score=69.69)
    Calling analyze_company_comprehensive...
    Applying precomputed values to ensure consistency with company list
    Analysis completed successfully
    Investment commentary present: True
-   Successfully analyzed company: 65.0% attractiveness
-DEBUG: Company analysis request for ID: vc_0002
-   Analyzing company: 'Rock' Your Paper
-   Using precomputed values from dataset columns for consistency (score=25.12)
-   Calling analyze_company_comprehensive...
-   Applying precomputed values to ensure consistency with company list
-   Analysis completed successfully
-   Investment commentary present: True
-   Successfully analyzed company: 25.120236410839937% attractiveness
-DEBUG: Company analysis request for ID: vc_0001
-   Analyzing company: &TV Communications
-   Using precomputed values from dataset columns for consistency (score=65.00)
-   Calling analyze_company_comprehensive...
-   Applying precomputed values to ensure consistency with company list
-   Analysis completed successfully
-   Investment commentary present: True
-   Successfully analyzed company: 65.0% attractiveness
-DEBUG: Company analysis request for ID: vc_0001
-   Analyzing company: &TV Communications
-   Using precomputed values from dataset columns for consistency (score=65.00)
-   Calling analyze_company_comprehensive...
-   Applying precomputed values to ensure consistency with company list
-   Analysis completed successfully
-   Investment commentary present: True
-   Successfully analyzed company: 65.0% attractiveness
-DEBUG: Company analysis request for ID: vc_0002
-   Analyzing company: 'Rock' Your Paper
-   Using precomputed values from dataset columns for consistency (score=25.12)
-   Calling analyze_company_comprehensive...
-   Applying precomputed values to ensure consistency with company list
-   Analysis completed successfully
-   Investment commentary present: True
-   Successfully analyzed company: 25.120236410839937% attractiveness
+   Successfully analyzed company: 69.68627009715298% attractiveness

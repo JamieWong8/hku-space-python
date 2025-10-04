@@ -361,9 +361,9 @@ def api_score_distribution():
         if s.empty:
             return jsonify({'error': 'No attractiveness scores available'}), 500
 
-        # Compute tier counts using 3-tier thresholds
+        # Compute tier counts using 3-tier thresholds (aligned with model.py TIER_SCORE_BOUNDS)
         def _tier(x: float) -> str:
-            return 'invest' if x >= 60 else ('monitor' if x >= 45 else 'avoid')
+            return 'invest' if x >= 65 else ('monitor' if x >= 50 else 'avoid')
         tiers = s.apply(_tier).value_counts().to_dict()
         dist = {
             'count': int(s.count()),
@@ -445,10 +445,10 @@ def api_coherence_audit():
                 elif 'monitor' in ts or 'hold' in ts or 'tier 3' in ts:
                     tn = 'monitor'
                 else:
-                    tn = 'invest' if score >= 60 else ('monitor' if score >= 45 else 'avoid')
+                    tn = 'invest' if score >= 65 else ('monitor' if score >= 50 else 'avoid')
 
-                # Risk expected from score policy
-                risk_expected = 'Low' if score >= 60 else ('Medium' if score >= 45 else 'High')
+                # Risk expected from score policy (aligned with model.py TIER_SCORE_BOUNDS)
+                risk_expected = 'Low' if score >= 65 else ('Medium' if score >= 50 else 'High')
                 if risk and risk.strip() and risk.strip() != risk_expected:
                     risk_mismatch += 1
 
@@ -522,9 +522,9 @@ def api_admin_precompute():
                 s = df['precomputed_attractiveness_score'].dropna().astype(float)
                 counts = {
                     'total_scored': int(s.count()),
-                    'invest': int((s >= 60).sum()),
-                    'monitor': int(((s >= 45) & (s < 60)).sum()),
-                    'avoid': int((s < 45).sum()),
+                    'invest': int((s >= 65).sum()),
+                    'monitor': int(((s >= 50) & (s < 65)).sum()),
+                    'avoid': int((s < 50).sum()),
                 }
         except Exception:
             counts = {}
@@ -853,16 +853,16 @@ def api_companies():
                     tier_post_count = len(filtered_companies)
                     tier_applied = True
                     print(f"[API] Precomputed tier filter matched {tier_post_count} rows")
-                # FALLBACK: Use attractiveness score thresholds for fast approximation
+                # FALLBACK: Use attractiveness score thresholds for fast approximation (aligned with model.py)
                 elif 'precomputed_attractiveness_score' in filtered_companies.columns:
                     print(f"[API] Using score-based tier approximation (precomputed_investment_tier_norm not available)")
                     score_col = filtered_companies['precomputed_attractiveness_score']
                     if tier_filter_norm == 'invest':
-                        filtered_companies = filtered_companies[score_col >= 60]
+                        filtered_companies = filtered_companies[score_col >= 65]
                     elif tier_filter_norm == 'monitor':
-                        filtered_companies = filtered_companies[(score_col >= 45) & (score_col < 60)]
+                        filtered_companies = filtered_companies[(score_col >= 50) & (score_col < 65)]
                     else:  # avoid
-                        filtered_companies = filtered_companies[score_col < 45]
+                        filtered_companies = filtered_companies[score_col < 50]
                     tier_post_count = len(filtered_companies)
                     tier_applied = True
                     print(f"[API] Score-based tier filter matched {tier_post_count} rows")
@@ -1760,7 +1760,7 @@ def api_companies_analyze():
                             if norm in {'invest', 'monitor', 'avoid'}:
                                 ml_result['investment_tier'] = 'Invest' if norm == 'invest' else ('Monitor' if norm == 'monitor' else 'Avoid')
                             else:
-                                ml_result['investment_tier'] = 'Invest' if pre_s >= 60 else ('Monitor' if pre_s >= 45 else 'Avoid')
+                                ml_result['investment_tier'] = 'Invest' if pre_s >= 65 else ('Monitor' if pre_s >= 50 else 'Avoid')
                             if 'precomputed_recommendation' in company.index and isinstance(company.get('precomputed_recommendation'), str):
                                 ml_result['recommendation'] = str(company.get('precomputed_recommendation'))
                             if 'precomputed_risk_level' in company.index and isinstance(company.get('precomputed_risk_level'), str):
@@ -1778,7 +1778,7 @@ def api_companies_analyze():
             'summary': {
                 'total_analyzed': len(analysis_results),
                 'avg_attractiveness': sum(r['attractiveness_score'] for r in analysis_results) / len(analysis_results) if analysis_results else 0,
-                'recommended_count': len([r for r in analysis_results if r['attractiveness_score'] >= 60])
+                'recommended_count': len([r for r in analysis_results if r['attractiveness_score'] >= 65])
             }
         })
         
@@ -1857,13 +1857,27 @@ if __name__ == '__main__':
                 print("⚠️  Precomputed data not found. Auto-triggering precomputation...")
                 from model import precompute_investment_tiers
                 
-                result = precompute_investment_tiers(max_rows=400)  # Limit to 400 for faster startup
-                if result and result.get('success'):
-                    counts = result.get('counts', {})
-                    print(f"✅ Auto-precompute completed: {counts.get('total_scored', 0)} companies")
-                    print(f"   🟢 Invest: {counts.get('invest', 0)}, 🟡 Monitor: {counts.get('monitor', 0)}, 🔴 Avoid: {counts.get('avoid', 0)}")
-                else:
-                    print("⚠️  Auto-precompute failed - scores may show as 50% until manually triggered")
+                try:
+                    precompute_investment_tiers(max_rows=400)  # Limit to 400 for faster startup
+                    # Check if precomputation succeeded by looking at the data
+                    if 'precomputed_attractiveness_score' in model.sample_data.columns:
+                        non_null_count = model.sample_data['precomputed_attractiveness_score'].notna().sum()
+                        if non_null_count > 0:
+                            print(f"✅ Auto-precompute completed: {non_null_count} companies scored")
+                            # Count tiers
+                            if 'precomputed_investment_tier' in model.sample_data.columns:
+                                tier_counts = model.sample_data['precomputed_investment_tier'].value_counts()
+                                invest_ct = tier_counts.get('Invest', 0)
+                                monitor_ct = tier_counts.get('Monitor', 0)
+                                avoid_ct = tier_counts.get('Avoid', 0)
+                                print(f"   🟢 Invest: {invest_ct}, 🟡 Monitor: {monitor_ct}, 🔴 Avoid: {avoid_ct}")
+                        else:
+                            print("⚠️  Auto-precompute completed but no scores generated")
+                    else:
+                        print("⚠️  Auto-precompute completed but column not found")
+                except Exception as precomp_err:
+                    print(f"⚠️  Auto-precompute failed: {precomp_err}")
+                    print("   Scores may show as 50% until manually triggered via /api/admin/precompute")
         except Exception as e:
             print(f"⚠️  Error in auto-precompute: {e}")
             print("   Scores may show as 50% until manually triggered via /api/admin/precompute")

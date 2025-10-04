@@ -8,8 +8,12 @@ An instant-start Flask web application that helps investment teams discover, ben
 ![License](https://img.shields.io/badge/license-MIT-green.svg)
 
 > **📘 New to Deal Scout?** Start with [DOCUMENTATION_INDEX.md](DOCUMENTATION_INDEX.md) for complete navigation.  
-> **📊 Recent Updates?** See [OCTOBER_2025_UPDATES.md](OCTOBER_2025_UPDATES.md) for latest scoring and performance improvements.  
-> **⚡ Quick Reference?** Check [QUICK_REFERENCE.md](QUICK_REFERENCE.md) for commands and tier thresholds.
+> **🚀 Quick Start?** See [QUICK_START_GUIDE.md](QUICK_START_GUIDE.md) to get started in 2 minutes!  
+> **🏗️ Tech Stack?** Read [TECH_STACK.md](TECH_STACK.md) for comprehensive technology overview and [ARCHITECTURE_DIAGRAMS.md](ARCHITECTURE_DIAGRAMS.md) for visual diagrams.  
+> **📊 Recent Updates?** Check [PRECOMPUTE_MESSAGE_FIX.md](PRECOMPUTE_MESSAGE_FIX.md) and [SCORING_METHODOLOGY.md](SCORING_METHODOLOGY.md) for latest improvements.  
+> **🎨 Visualizations?** See [VISUALIZATION_ENHANCEMENTS.md](VISUALIZATION_ENHANCEMENTS.md) for details on our enhanced analytics dashboard.  
+> **⚡ Quick Reference?** Check [QUICK_REFERENCE.md](QUICK_REFERENCE.md) for commands and tier thresholds.  
+> **📓 Interactive Notebook?** Try [Deal_Scout_Interactive.ipynb](Deal_Scout_Interactive.ipynb) for Jupyter-based exploration! See [JUPYTER_NOTEBOOK_GUIDE.md](JUPYTER_NOTEBOOK_GUIDE.md) for details.
 
 ---
 
@@ -39,15 +43,18 @@ Deal Scout
 │   ├── user_guide.md          # UI walkthrough
 │   ├── technical_specs.md     # ML + system design reference
 │   └── project_summary.md     # Executive summary
+├── Deal_Scout_Interactive.ipynb  # 📓 NEW: Interactive Jupyter Notebook
+├── JUPYTER_NOTEBOOK_GUIDE.md     # 📓 Notebook documentation & usage
+├── notebook_requirements.txt     # Notebook-specific dependencies
 ├── DEPLOYMENT_GUIDE.md        # GitHub + hosting instructions
 ├── KAGGLE_INTEGRATION_GUIDE.md# Detailed credential setup
 ├── KAGGLEHUB_INTEGRATION_COMPLETE.md
 ├── FLASK_CONVERSION_GUIDE.md  # Notebook-to-Flask history and tips
 ├── startup_deal_evaluator.ipynb (legacy)  # Original notebook for reference only
-└── requirements.txt           # Notebook dependency snapshot
+└── requirements.txt           # Flask app dependency snapshot
 ```
 
-> The notebook remains in the repo for historical reference; the supported experience is the Flask web application.
+> The Flask web application is the primary supported experience. The new **Deal_Scout_Interactive.ipynb** provides an alternative interactive notebook environment with live widgets and visualizations.
 
 ---
 
@@ -97,10 +104,17 @@ python app.py
 
 ## 🧠 Machine Learning Pipeline
 
-- **Ensemble classification**: grid-searched RandomForest, HistGradientBoosting, ExtraTrees, Logistic Regression, and soft voting with tuned probability thresholds.
-- **Regression models** for funding and valuation recommendations, trained on aligned feature matrices.
-- **Feature engineering**: consolidated industry/region groupings, efficiency ratios, log transforms, categorical encodings, and probability tempering to avoid contradictory risk labels.
-- **Tier Thresholds (Updated Oct 2025)**: Invest ≥65%, Monitor 50-64%, Avoid <50% - calibrated for realistic VC funnel distribution (25% / 45% / 30%).
+- **Ensemble classification**: grid-searched RandomForest, HistGradientBoosting, ExtraTrees, Logistic Regression, and soft voting with tuned probability thresholds. Achieves 75-85% accuracy.
+- **Regression models** for funding and valuation recommendations (R² typically 80-85%), trained on aligned feature matrices.
+- **Feature engineering**: 44+ features including consolidated industry/region groupings, efficiency ratios, log transforms, categorical encodings, and probability calibration.
+- **Stricter Scoring (Schema 2025-10-01-stricter-tiers)**:
+  - Success probability: 70% weight, mapped (0.25-0.85) → (0-1) for higher selectivity
+  - Lower base rates: operating companies 28% (was 40%)
+  - Hard gating: sp<0.40 caps at 49 (Avoid), sp<0.50 caps at 64 (Monitor)
+  - Distribution normalization DISABLED to allow natural scoring
+- **Tier Thresholds**: Invest ≥65, Monitor 50-64, Avoid <50 (raised from 60/45 for selectivity)
+- **Expected Distribution**: ~10-20% Invest, ~30-40% Monitor, ~40-60% Avoid (natural from strict scoring)
+- **Performance**: Fast bootstrap (<1s) + background training (10-30s); cached models load instantly on restart
 - **Caching strategy**: model artifacts + tier precomputes stored under `flask_app/.model_cache/` with SHA-based signatures; admin endpoints manage lifecycle.
 
 ---
@@ -132,45 +146,16 @@ python app.py
 - **Credential discovery:** Environment variables `KAGGLE_USERNAME`/`KAGGLE_KEY` or `flask_app/kaggle.json`.
 - **Fallback:** Bundled `investments_VC.csv` used when Kaggle requests fail or rate-limit.
 
-Refer to:
 
-- `KAGGLE_INTEGRATION_GUIDE.md` – API token setup, directory structure.
-- `KAGGLEHUB_INTEGRATION_COMPLETE.md` – Operational checklist when running on Kaggle notebooks/VMs.
-
----
 
 ## 🧪 Tooling & Scripts
 
 | Script | Location | Purpose |
 | --- | --- | --- |
 | `run_web_app.ps1` | `flask_app/` | One-click setup and launch on Windows (venv, deps, env vars). |
-| `start_server.ps1` / `.sh` | `flask_app/` | Production-style launcher without installer logic. |
-| `_tools/smoke_test.py` & friends | `flask_app/_tools/` | Smoke tests, data verification utilities. |
-| `setup_deployment.ps1` / `.sh` | repo root | Helpers for packaging and deployment scaffolding. |
 
----
 
-## 📚 Documentation Map
 
-- **[DOCUMENTATION_INDEX.md](DOCUMENTATION_INDEX.md)** ⭐ **Complete navigation guide** to all documentation
-- **[OCTOBER_2025_UPDATES.md](OCTOBER_2025_UPDATES.md)** - Latest scoring, performance, and UI updates
-- [User Guide](docs/user_guide.md) – How to use the web UI, company explorer, and analysis workflows.
-- [Technical Specs](docs/technical_specs.md) – Architecture diagrams, feature engineering, ML configuration.
-- [Project Summary](docs/project_summary.md) – Executive overview for stakeholders.
-- [Deployment Guide](DEPLOYMENT_GUIDE.md) – GitHub publishing, Docker/Gunicorn/Waitress notes, CI hooks.
-- [Flask Conversion Guide](FLASK_CONVERSION_GUIDE.md) – Migration notes from the original notebook.
-- [Fixes Summary](FIXES_SUMMARY.md) – Recent bug fixes and improvements.
-
----
-
-## 🤝 Contributing
-
-1. Fork the repository.
-2. Create a branch (`git checkout -b feature/your-feature`).
-3. Run smoke tests and linting (`pytest`, `python -m compileall`, etc.).
-4. Submit a pull request referencing updated documentation or test coverage.
-
-> Contributions should preserve the instant-start defaults, keep probability tempering coherent, and include documentation updates when surfaces change.
 
 ---
 
@@ -184,18 +169,3 @@ Built with:
 - pandas, scikit-learn, seaborn, matplotlib for analytics
 - KaggleHub for dataset access and caching
 
----
-
-## 🛣️ Roadmap Highlights
-
-- Enhanced multi-model ensembles with time-series drift monitoring.
-- Streaming data connectors (Crunchbase Live, PitchBook APIs, etc.).
-- Enterprise SSO, role-based access, and audit logging.
-- Front-end componentization (React/Vue) backed by the existing REST APIs.
-- Expanded admin console with cache status, training controls, and queue metrics.
-
-Have feedback or questions? Open an issue or reach out through the project discussion board.
-
----
-
-**If Deal Scout saves your diligence team time, we’d love a ⭐ on GitHub.**

@@ -454,3 +454,14 @@
   color: var(--text-inverse);
   background: var(--color-primary);
 }
+
+/* Dark mode text visibility fixes */
+[data-theme="dark"] #riskFactorsList small,
+[data-theme="dark"] .card-body small,
+[data-theme="dark"] .text-muted {
+  color: rgba(255, 255, 255, 0.7) !important;
+}
+
+[data-theme="dark"] #riskFactorsList .mb-2 {
+  color: var(--text-primary);
+}
