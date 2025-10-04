@@ -1,4 +1,7 @@
-# 🚀 Deal Scout – Startup Deal Evaluator
+# 🚀 Deal> **📘 New to Deal Scout?** Start with [DOCUMENTATION_INDEX.md](DOCUMENTATION_INDEX.md) for complete navigation.  
+> **🚀 Quick Start?** See [QUICK_START_GUIDE.md](QUICK_START_GUIDE.md) to get started in 2 minutes!  
+> **🔄 How It Works?** Read [flask_app/WORKFLOW_SIMPLE.md](flask_app/WORKFLOW_SIMPLE.md) for plain-English explanation or [flask_app/WORKFLOW_GUIDE.md](flask_app/WORKFLOW_GUIDE.md) for technical details!  
+> **🌐 Public Deployment?** Check [flask_app/NGROK_DEPLOYMENT_GUIDE.md](flask_app/NGROK_DEPLOYMENT_GUIDE.md) to deploy via ngrok in minutes!out – Startup Deal Evaluator
 
 An instant-start Flask web application that helps investment teams discover, benchmark, and analyze startups using an ensemble machine learning pipeline, Kaggle-powered data ingestion, and rich diagnostics.
 
@@ -9,7 +12,8 @@ An instant-start Flask web application that helps investment teams discover, ben
 
 > **📘 New to Deal Scout?** Start with [DOCUMENTATION_INDEX.md](DOCUMENTATION_INDEX.md) for complete navigation.  
 > **🚀 Quick Start?** See [QUICK_START_GUIDE.md](QUICK_START_GUIDE.md) to get started in 2 minutes!  
-> **🏗️ Tech Stack?** Read [TECH_STACK.md](TECH_STACK.md) for comprehensive technology overview and [ARCHITECTURE_DIAGRAMS.md](ARCHITECTURE_DIAGRAMS.md) for visual diagrams.  
+> **� Public Deployment?** Check [flask_app/NGROK_DEPLOYMENT_GUIDE.md](flask_app/NGROK_DEPLOYMENT_GUIDE.md) to deploy via ngrok in minutes!  
+> **�🏗️ Tech Stack?** Read [TECH_STACK.md](TECH_STACK.md) for comprehensive technology overview and [ARCHITECTURE_DIAGRAMS.md](ARCHITECTURE_DIAGRAMS.md) for visual diagrams.  
 > **📊 Recent Updates?** Check [PRECOMPUTE_MESSAGE_FIX.md](PRECOMPUTE_MESSAGE_FIX.md) and [SCORING_METHODOLOGY.md](SCORING_METHODOLOGY.md) for latest improvements.  
 > **🎨 Visualizations?** See [VISUALIZATION_ENHANCEMENTS.md](VISUALIZATION_ENHANCEMENTS.md) for details on our enhanced analytics dashboard.  
 > **⚡ Quick Reference?** Check [QUICK_REFERENCE.md](QUICK_REFERENCE.md) for commands and tier thresholds.  
@@ -102,9 +106,34 @@ python app.py
 
 ---
 
+## 🌐 Public Deployment with ngrok
+
+Deploy your local Flask app to a public URL in minutes using ngrok:
+
+```powershell
+cd "c:\Users\jamie\OneDrive\Documents\Deal Scout\flask_app"
+.\start_ngrok.ps1
+```
+
+**Features:**
+- ✅ Public HTTPS URL (e.g., `https://your-app.ngrok-free.dev`)
+- ✅ Share with anyone instantly
+- ✅ No deployment infrastructure required
+- ✅ Real-time traffic monitoring
+- ✅ Works on mobile devices
+
+**Documentation:**
+- **Complete Guide:** [flask_app/NGROK_DEPLOYMENT_GUIDE.md](flask_app/NGROK_DEPLOYMENT_GUIDE.md)
+- **Quick Reference:** [flask_app/NGROK_QUICK_REF.md](flask_app/NGROK_QUICK_REF.md)
+- **Setup Complete:** [flask_app/NGROK_DEPLOYMENT_COMPLETE.md](flask_app/NGROK_DEPLOYMENT_COMPLETE.md)
+
+> **Note:** ngrok creates temporary public URLs. Free tier URLs change on each restart. Upgrade to Pro for persistent domains.
+
+---
+
 ## 🧠 Machine Learning Pipeline
 
-- **Ensemble classification**: grid-searched RandomForest, HistGradientBoosting, ExtraTrees, Logistic Regression, and soft voting with tuned probability thresholds. Achieves 75-85% accuracy.
+- **Ensemble classification**: grid-searched RandomForest, HistGradientBoosting, ExtraTrees, Logistic Regression, and soft voting with tuned probability thresholds. Achieves 60-75% accuracy.
 - **Regression models** for funding and valuation recommendations (R² typically 80-85%), trained on aligned feature matrices.
 - **Feature engineering**: 44+ features including consolidated industry/region groupings, efficiency ratios, log transforms, categorical encodings, and probability calibration.
 - **Stricter Scoring (Schema 2025-10-01-stricter-tiers)**:

@@ -78,3 +78,43 @@ DEBUG: Company analysis request for ID: vc_0166
    Analysis completed successfully
    Investment commentary present: True
    Successfully analyzed company: 69.68627009715298% attractiveness
+DEBUG: Company analysis request for ID: vc_0002
+   Analyzing company: 'Rock' Your Paper
+   Using precomputed values from dataset columns for consistency (score=37.81)
+   Calling analyze_company_comprehensive...
+   Applying precomputed values to ensure consistency with company list
+   Analysis completed successfully
+   Investment commentary present: True
+   Successfully analyzed company: 37.812695365162675% attractiveness
+DEBUG: Company analysis request for ID: vc_0001
+   Analyzing company: &TV Communications
+   Using precomputed values from dataset columns for consistency (score=60.77)
+   Calling analyze_company_comprehensive...
+   Applying precomputed values to ensure consistency with company list
+   Analysis completed successfully
+   Investment commentary present: True
+   Successfully analyzed company: 60.76764749223468% attractiveness
+DEBUG: Company analysis request for ID: vc_0000
+   Analyzing company: #waywire
+   Using precomputed values from dataset columns for consistency (score=62.06)
+   Calling analyze_company_comprehensive...
+   Applying precomputed values to ensure consistency with company list
+   Analysis completed successfully
+   Investment commentary present: True
+   Successfully analyzed company: 62.055412591997246% attractiveness
+DEBUG: Company analysis request for ID: vc_0035
+   Analyzing company: 10X10 Room
+   Using precomputed values from dataset columns for consistency (score=40.29)
+   Calling analyze_company_comprehensive...
+   Applying precomputed values to ensure consistency with company list
+   Analysis completed successfully
+   Investment commentary present: True
+   Successfully analyzed company: 40.289458309512675% attractiveness
+DEBUG: Company analysis request for ID: vc_0365
+   Analyzing company: 6sicuro.it
+   Using precomputed values from dataset columns for consistency (score=57.65)
+   Calling analyze_company_comprehensive...
+   Applying precomputed values to ensure consistency with company list
+   Analysis completed successfully
+   Investment commentary present: True
+   Successfully analyzed company: 57.6493849866169% attractiveness
